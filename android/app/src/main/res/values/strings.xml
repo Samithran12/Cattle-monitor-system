@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">CattleIQ</string>
+    <string name="title_activity_main">CattleIQ</string>
+    <string name="package_name">in.cattleiq.app</string>
+    <string name="custom_url_scheme">in.cattleiq.app</string>
+</resources>

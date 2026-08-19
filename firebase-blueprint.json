@@ -1,0 +1,90 @@
+{
+  "entities": {
+    "user": {
+      "title": "UserProfile",
+      "description": "User profile metadata and farm statistics",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "maxLength": 100 },
+        "email": { "type": "string", "maxLength": 200 },
+        "photoUrl": { "type": "string", "maxLength": 500 },
+        "totalAnimals": { "type": "number" },
+        "totalRevenue": { "type": "string", "maxLength": 50 },
+        "growth": { "type": "string", "maxLength": 20 },
+        "language": { "type": "string", "enum": ["English", "Tamil", "Hindi"] },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["name", "email"]
+    },
+    "animal": {
+      "title": "Animal",
+      "description": "Livestock animal record with health telemetry and digital passport",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 100 },
+        "breed": { "type": "string", "maxLength": 100 },
+        "ageMonths": { "type": "number" },
+        "weightKg": { "type": "number" },
+        "gender": { "type": "string", "enum": ["Female", "Male"] },
+        "status": { "type": "string", "enum": ["Healthy", "Quarantined", "Medical Attention", "Pregnant"] },
+        "healthScore": { "type": "number" },
+        "lactating": { "type": "boolean" },
+        "vaccinationStatus": { "type": "string", "maxLength": 100 },
+        "tagNumber": { "type": "string", "maxLength": 50 },
+        "imageUrl": { "type": "string", "maxLength": 2000 },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["userId", "name", "breed", "tagNumber"]
+    },
+    "task": {
+      "title": "SmartTask",
+      "description": "Smart task and reminder for farm management",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "maxLength": 128 },
+        "title": { "type": "string", "maxLength": 200 },
+        "animalName": { "type": "string", "maxLength": 100 },
+        "dueDate": { "type": "string", "maxLength": 50 },
+        "urgent": { "type": "boolean" },
+        "isCompleted": { "type": "boolean" },
+        "isAiSuggested": { "type": "boolean" },
+        "category": { "type": "string", "maxLength": 50 },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["userId", "title"]
+    },
+    "advisorMessage": {
+      "title": "AdvisorMessage",
+      "description": "AI advisor chat message",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "maxLength": 128 },
+        "text": { "type": "string", "maxLength": 5000 },
+        "sender": { "type": "string", "enum": ["user", "ai"] },
+        "timestamp": { "type": "string", "maxLength": 50 },
+        "image": { "type": "string", "maxLength": 2000 },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["userId", "text", "sender"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/user" },
+      "description": "User profile collection indexed by User ID"
+    },
+    "/animals/{animalId}": {
+      "schema": { "$ref": "#/entities/animal" },
+      "description": "Collection of livestock owned by users"
+    },
+    "/tasks/{taskId}": {
+      "schema": { "$ref": "#/entities/task" },
+      "description": "Collection of smart tasks and reminders"
+    },
+    "/advisorMessages/{messageId}": {
+      "schema": { "$ref": "#/entities/advisorMessage" },
+      "description": "History of AI advisor messages"
+    }
+  }
+}

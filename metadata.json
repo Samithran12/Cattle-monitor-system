@@ -1,0 +1,6 @@
+{
+  "name": "AI Livestock",
+  "description": "An AI-powered Agri-SaaS livestock management platform with AI Advisor, Breed Detection Scanner, Herd Digital Passports, Marketplace, and Smart Tasks.",
+  "requestFramePermissions": ["camera", "microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
