@@ -27,8 +27,7 @@ export const INITIAL_USER: UserProfile = {
   totalRevenue: "₹1.48L",
   growth: "96%",
   language: "English",
-  photoUrl:
-    "https://lh3.googleusercontent.com/aida-public/AB6AXuAwXOIlrj2VA7zolpbseS7fMuqgdNXfkaOFPFNS0VWmkiqfLntFLK5th1upyD6ikBge6kDafP65zRkpM_jyy8BwwnPVg5xtR3KQxCIz7dJUFx4tYgzDAHAXNA5CGMZ-QGMID-4dx0M3y7Hq0s8ublwsT92IfgRcNuwvK4rHNBhoZgDoCdMMM3dbpREuDJhJU-tX2FvFnaVWwjXs4hgIaaMJnvlSdFvcy1yExTgMy2ZI-yBQQ7W6Eg9P5fjBsDYL8gXUvz5MZenzM_s",
+  photoUrl: "/assets/default-avatar.svg",
 };
 
 const STORAGE_KEYS = {
@@ -181,11 +180,20 @@ export const saveStoredAdvisorMessages = (messages: AdvisorMessage[]) => {
 };
 
 export const loadStoredDarkMode = (): boolean => {
-  return true; // Always Dark / Black themed
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.DARK_MODE);
+    return raw ? JSON.parse(raw) === true : false;
+  } catch {
+    return false;
+  }
 };
 
-export const saveStoredDarkMode = (_isDark: boolean) => {
-  // Persistence for consistency
+export const saveStoredDarkMode = (isDark: boolean) => {
+  try {
+    localStorage.setItem(STORAGE_KEYS.DARK_MODE, JSON.stringify(isDark));
+  } catch (e) {
+    console.error("Failed to save dark mode setting", e);
+  }
 };
 
 export const INITIAL_NOTIFICATIONS: AppNotification[] = [

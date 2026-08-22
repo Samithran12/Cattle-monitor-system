@@ -6,25 +6,35 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-function getAiClient() {
+function getAiClient(): GoogleGenAI {
   const apiKey = process.env.GEMINI_API_KEY || "";
   return new GoogleGenAI({
     apiKey: apiKey || "dummy-key",
     httpOptions: {
       headers: {
-        "User-Agent": "cattleiq-enterprise",
+        "User-Agent": "cattleiq-enterprise/2.4.0",
       },
     },
   });
 }
 
-// In-memory rate limiting map for enterprise protection
+// In-memory rate limiting with automated memory garbage collection
 const rateLimitMap = new Map<string, { count: number; lastReset: number }>();
 const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute
 const MAX_REQUESTS_PER_WINDOW = 60; // 60 requests per minute per IP
 
+// Automated cleanup of stale IP records every 5 minutes to prevent memory bloat
+setInterval(() => {
+  const now = Date.now();
+  for (const [ip, record] of rateLimitMap.entries()) {
+    if (now - record.lastReset > RATE_LIMIT_WINDOW_MS * 2) {
+      rateLimitMap.delete(ip);
+    }
+  }
+}, 5 * 60 * 1000);
+
 function rateLimiter(req: express.Request, res: express.Response, next: express.NextFunction) {
-  const ip = req.ip || req.socket.remoteAddress || "unknown";
+  const ip = (req.headers["x-forwarded-for"] as string)?.split(",")[0]?.trim() || req.ip || req.socket.remoteAddress || "unknown";
   const now = Date.now();
   const record = rateLimitMap.get(ip) || { count: 0, lastReset: now };
 
@@ -50,20 +60,61 @@ function rateLimiter(req: express.Request, res: express.Response, next: express.
   next();
 }
 
+/**
+ * Sanitizes text input by trimming and stripping dangerous control characters
+ */
+function sanitizeString(input: unknown, maxLen = 2000): string {
+  if (typeof input !== "string") return "";
+  return input
+    .trim()
+    .slice(0, maxLen)
+    .replace(/[\u0000-\u0008\u000B-\u000C\u000E-\u001F\u007F]/g, ""); // Remove ASCII control codes
+}
+
 async function startServer() {
   const app = express();
   const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 
-  // Security Headers Middleware
-  app.use((_req, res, next) => {
+  // 1. Anti-fingerprinting: disable x-powered-by
+  app.disable("x-powered-by");
+
+  // 2. Production Security Headers & Content Security Policy
+  app.use((req, res, next) => {
     res.setHeader("X-Content-Type-Options", "nosniff");
     res.setHeader("X-Frame-Options", "SAMEORIGIN");
     res.setHeader("X-XSS-Protection", "1; mode=block");
     res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+    res.setHeader("Permissions-Policy", "camera=(self), microphone=(self), geolocation=(self)");
+    res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload");
+
+    // Content Security Policy permitting Firebase auth/storage, Google fonts, self
+    res.setHeader(
+      "Content-Security-Policy",
+      [
+        "default-src 'self'",
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://apis.google.com https://*.firebaseio.com",
+        "connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://*.cloudfunctions.net wss://*.firebaseio.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com",
+        "img-src 'self' data: blob: https:",
+        "media-src 'self' data: blob:",
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+        "font-src 'self' https://fonts.gstatic.com data:",
+        "object-src 'none'",
+        "frame-ancestors 'self'",
+        "base-uri 'self'",
+        "form-action 'self'",
+      ].join("; ")
+    );
+
+    if (req.method === "OPTIONS") {
+      res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+      res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+      return res.sendStatus(204);
+    }
     next();
   });
 
-  app.use(express.json({ limit: "25mb" }));
+  // 3. Payload size caps
+  app.use(express.json({ limit: "15mb" }));
   app.use("/api/", rateLimiter);
 
   // API Health Check
@@ -71,7 +122,7 @@ async function startServer() {
     res.json({
       status: "healthy",
       service: "CattleIQ Enterprise Backend",
-      version: "2.4.0",
+      version: "2.5.0",
       timestamp: new Date().toISOString(),
     });
   });
@@ -80,22 +131,24 @@ async function startServer() {
   app.post("/api/advisor/chat", async (req, res) => {
     try {
       const { message, history, language = "English" } = req.body;
-      if (!message || typeof message !== "string") {
+      const sanitizedMessage = sanitizeString(message, 2000);
+      const safeLanguage = ["English", "Tamil", "Hindi"].includes(language) ? language : "English";
+
+      if (!sanitizedMessage) {
         return res.status(400).json({ error: "Message must be a non-empty string" });
       }
 
-      const sanitizedMessage = message.trim().slice(0, 2000);
       const ai = getAiClient();
 
       const systemInstruction = `You are an expert AI Livestock Business Advisor specializing in Indian agricultural ecosystems, livestock investments, native breed preservation (Kangayam, Gir, Sahiwal, Ongole, Hallikar, etc.), feed cost optimization, disease prevention, and herd management.
-CRITICAL LANGUAGE RULE: The user's active language is "${language}".
+CRITICAL LANGUAGE RULE: The user's active language is "${safeLanguage}".
 - If language is "Tamil", you MUST write your advisory "text" and "suggestions" in fluent, natural Tamil (தமிழ்).
 - If language is "Hindi", you MUST write your advisory "text" and "suggestions" in fluent, natural Hindi (हिंदी).
 - If language is "English", write in English.
 
 Provide structured, highly practical responses in JSON format matching this schema:
 {
-  "text": "Detailed advisory text in ${language}...",
+  "text": "Detailed advisory text in ${safeLanguage}...",
   "bento": {
     "estimatedRoi": "12-15%",
     "initialHerdSize": "2-3 Cows",
@@ -103,22 +156,22 @@ Provide structured, highly practical responses in JSON format matching this sche
     "demandBadge": "Stable Demand"
   },
   "suggestions": [
-    "Suggested question 1 in ${language}",
-    "Suggested question 2 in ${language}",
-    "Suggested question 3 in ${language}"
+    "Suggested question 1 in ${safeLanguage}",
+    "Suggested question 2 in ${safeLanguage}",
+    "Suggested question 3 in ${safeLanguage}"
   ]
 }
 
 Note:
 - "bento" is optional. Include "bento" metrics whenever discussing investments, financial planning, breed buying, feed cost estimation, or ROI.
 - "text" should contain clear markdown or formatted text.
-- "suggestions" must contain 2 to 3 follow-up prompt chips for the user in ${language}.`;
+- "suggestions" must contain 2 to 3 follow-up prompt chips for the user in ${safeLanguage}.`;
 
       let contents = [];
       if (Array.isArray(history) && history.length > 0) {
         contents = history.slice(-6).map((item: { role: string; text: string }) => ({
           role: item.role === "user" ? "user" : "model",
-          parts: [{ text: String(item.text).slice(0, 1000) }],
+          parts: [{ text: sanitizeString(item.text, 1000) }],
         }));
       }
       contents.push({
@@ -173,13 +226,22 @@ Note:
     }
   });
 
-  // Audio Speech-to-Text & Intent Endpoint (Multimodal Audio Speech Engine)
+  // Audio Speech-to-Text & Intent Endpoint
   app.post("/api/voice/transcribe", async (req, res) => {
     try {
       const { audioBase64, mimeType = "audio/webm", userLanguage = "English" } = req.body;
       if (!audioBase64 || typeof audioBase64 !== "string") {
         return res.status(400).json({ error: "audioBase64 is required" });
       }
+
+      // Base64 size limit (10MB max)
+      if (audioBase64.length > 15 * 1024 * 1024) {
+        return res.status(413).json({ error: "Audio payload exceeds maximum permissible size (10MB)" });
+      }
+
+      const safeMime = ["audio/webm", "audio/mp4", "audio/ogg", "audio/wav"].includes(mimeType)
+        ? mimeType
+        : "audio/webm";
 
       const ai = getAiClient();
       const cleanBase64 = audioBase64.replace(/^data:audio\/\w+;base64,/, "");
@@ -217,7 +279,7 @@ Return pure valid JSON only.`;
               {
                 inlineData: {
                   data: cleanBase64,
-                  mimeType,
+                  mimeType: safeMime,
                 },
               },
               { text: prompt },
@@ -258,27 +320,18 @@ Return pure valid JSON only.`;
   app.post("/api/voice/intent", async (req, res) => {
     try {
       const { transcript, userLanguage = "English" } = req.body;
-      if (!transcript || typeof transcript !== "string") {
+      const sanitizedTranscript = sanitizeString(transcript, 1000);
+
+      if (!sanitizedTranscript) {
         return res.status(400).json({ error: "Transcript is required" });
       }
 
-      const sanitizedTranscript = transcript.trim().slice(0, 1000);
+      const safeLanguage = ["English", "Tamil", "Hindi"].includes(userLanguage) ? userLanguage : "English";
       const ai = getAiClient();
 
       const systemInstruction = `You are the Multilingual AI Voice Assistant for CattleIQ, a livestock management mobile app for farmers in South India.
 Users speak in natural Tamil, Tanglish (Tamil + English mixed), Hindi, or English.
 You must interpret the user's natural meaning regardless of informal grammar or local dialect phrasing.
-
-EXAMPLES OF INTENT & FUNCTION CALLING:
-- "Scanner open pannunga" / "Scan pannu" / "இனம் கண்டுபிடி" / "Open scanner" -> functionName: "open_scanner", speakText: "Opening scanner now"
-- "Market page ku po" / "Santhai open pannu" / "Marketplace" -> functionName: "navigate_tab", args: { "tab": "market" }, speakText: "Opening marketplace"
-- "Cow add pannanum" / "Register animal" / "புதிய மாடு சேர்" -> functionName: "open_add_animal", speakText: "Opening animal registration"
-- "My herd kaatu" / "Animals view" / "மந்தை பட்டியல்" -> functionName: "navigate_tab", args: { "tab": "animals" }, speakText: "Opening herd list"
-- "Doctor-ku call pannunga" / "Vet contact" -> functionName: "open_marketplace", args: { "category": "Veterinarians" }, speakText: "Opening vet contacts"
-- "Task / Reminders kaatu" / "பணிகள்" -> functionName: "navigate_tab", args: { "tab": "tasks" }, speakText: "Opening smart tasks schedule"
-- "Profile view" / "Language maathu" -> functionName: "navigate_tab", args: { "tab": "profile" }, speakText: "Opening profile settings"
-- "AI Advisor peasu" / "ஆலோசகர்" -> functionName: "navigate_tab", args: { "tab": "advisor" }, speakText: "Opening AI advisor chat"
-- "Dark mode podu" / "Night mode" -> functionName: "toggle_dark_mode", speakText: "Toggling dark theme"
 
 AVAILABLE REGISTERED FUNCTIONS:
 1. "open_scanner" (args: {})
@@ -290,7 +343,7 @@ AVAILABLE REGISTERED FUNCTIONS:
 7. "search_herd" (args: { "query": string })
 
 If the request is conversational or informational (e.g. "What feed to give in summer?", "My cow has a fever"):
-Return type = "conversation". Provide a short, 1-2 sentence spoken answer in the user's spoken language (${userLanguage}).
+Return type = "conversation". Provide a short, 1-2 sentence spoken answer in the user's spoken language (${safeLanguage}).
 
 OUTPUT SCHEMA (Pure JSON only):
 For Function Call:
@@ -403,6 +456,10 @@ For Conversation:
       const { imageBase64, mimeType } = req.body;
       const ai = getAiClient();
 
+      if (imageBase64 && typeof imageBase64 === "string" && imageBase64.length > 20 * 1024 * 1024) {
+        return res.status(413).json({ error: "Image payload exceeds maximum permissible size (15MB)" });
+      }
+
       const prompt = `Analyze this livestock image carefully. Identify the breed and provide accurate genetic and agricultural insights in JSON format matching this schema:
 {
   "breed": "Kangayam",
@@ -422,12 +479,16 @@ If the image is not a cow or livestock, default to best estimate or Kangayam for
 
       if (imageBase64) {
         const cleanBase64 = imageBase64.replace(/^data:image\/\w+;base64,/, "");
+        const safeMime = ["image/jpeg", "image/png", "image/webp", "image/gif"].includes(mimeType)
+          ? mimeType
+          : "image/jpeg";
+
         contents = {
           parts: [
             {
               inlineData: {
                 data: cleanBase64,
-                mimeType: mimeType || "image/jpeg",
+                mimeType: safeMime,
               },
             },
             { text: prompt },
@@ -439,6 +500,7 @@ If the image is not a cow or livestock, default to best estimate or Kangayam for
         model: "gemini-2.5-flash",
         contents,
         config: {
+          systemInstruction: "You are a specialized bovine veterinary genetics AI.",
           responseMimeType: "application/json",
         },
       });
@@ -480,9 +542,9 @@ If the image is not a cow or livestock, default to best estimate or Kangayam for
     }
   });
 
-  // Global Error Handler
+  // Global Safe Error Handler (Does not leak internal paths or keys)
   app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-    console.error("Unhandled express error:", err?.message || err);
+    console.error("Unhandled error intercepted:", err?.message || "Internal error");
     res.status(500).json({
       error: "An internal service error occurred. Request was safely intercepted.",
     });
@@ -504,7 +566,7 @@ If the image is not a cow or livestock, default to best estimate or Kangayam for
   }
 
   app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server running on http://localhost:${PORT}`);
+    console.log(`CattleIQ Enterprise Server running on http://localhost:${PORT}`);
   });
 }
 

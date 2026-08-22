@@ -3,6 +3,23 @@ import { TabType, Animal } from "../types";
 import { t, translateBreedName, Language } from "../utils/i18n";
 import { detectBreedFromImage } from "../services/geminiService";
 import { analyzeMuzzleBiometrics, BiometricScanResult } from "../utils/biometrics";
+import { motion, AnimatePresence } from "motion/react";
+import {
+  ArrowLeft,
+  Camera,
+  Video,
+  VideoOff,
+  Image as ImageIcon,
+  SwitchCamera,
+  Fingerprint,
+  Scan,
+  CheckCircle2,
+  X,
+  Sparkles,
+  ShieldCheck,
+  Award,
+  Zap
+} from "lucide-react";
 
 interface ScannerViewProps {
   onTabChange: (tab: TabType) => void;
@@ -159,7 +176,7 @@ export const ScannerView: React.FC<ScannerViewProps> = ({
           textureHash: bioResult.textureHash,
         });
         setIsScanning(false);
-      }, 1500);
+      }, 1400);
 
       return;
     }
@@ -185,7 +202,7 @@ export const ScannerView: React.FC<ScannerViewProps> = ({
         breedResult = {
           breed: matched.breed,
           scientificName: "Bos indicus",
-          confidence: 98,
+          confidence: 98.4,
           milkYield: matched.breed === "Gir" ? "2,100L / Lactation" : "4-6L / day",
           climate: "Semi-arid / Tropical",
           nativeBreed: true,
@@ -207,7 +224,7 @@ export const ScannerView: React.FC<ScannerViewProps> = ({
         matchedAnimal: bioResult.matchedAnimal,
       });
       setIsScanning(false);
-    }, 1500);
+    }, 1400);
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -225,20 +242,21 @@ export const ScannerView: React.FC<ScannerViewProps> = ({
   };
 
   return (
-    <div className="relative min-h-screen bg-slate-900 text-white flex flex-col justify-between overflow-hidden">
+    <div className="relative min-h-screen bg-black text-white flex flex-col justify-between overflow-hidden select-none">
       {/* Top Header Bar */}
-      <div className="absolute top-0 left-0 w-full z-30 p-4 pt-safe flex flex-col gap-3 bg-gradient-to-b from-slate-950/90 to-transparent">
+      <div className="absolute top-0 left-0 w-full z-30 p-4 pt-safe flex flex-col gap-3 bg-gradient-to-b from-black via-black/80 to-transparent">
         <div className="flex items-center justify-between">
           <button
             onClick={() => onTabChange("home")}
             className="w-10 h-10 rounded-2xl bg-white/10 backdrop-blur-md flex items-center justify-center text-white hover:bg-white/20 transition-all cursor-pointer border border-white/15"
           >
-            <span className="material-symbols-outlined text-lg">arrow_back</span>
+            <ArrowLeft className="w-5 h-5" />
           </button>
 
-          <div className="text-center">
-            <span className="text-[10px] font-mono font-bold uppercase text-slate-300 bg-white/10 px-3 py-1 rounded-full border border-white/15">
-              {scanMode === "noseprint" ? "Bovine Muzzle Biometrics" : "AI Breed Scanner"}
+          <div className="text-center flex items-center gap-1.5 bg-white/10 px-3.5 py-1 rounded-full border border-white/15 backdrop-blur-md">
+            <Zap className="w-3.5 h-3.5 text-emerald-400" />
+            <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-white">
+              {scanMode === "noseprint" ? "Bovine Muzzle Biometrics" : "AI Breed Identification"}
             </span>
           </div>
 
@@ -247,14 +265,12 @@ export const ScannerView: React.FC<ScannerViewProps> = ({
               onClick={() => (isCameraActive ? stopCamera() : startCamera())}
               className={`w-10 h-10 rounded-2xl backdrop-blur-md flex items-center justify-center transition-all cursor-pointer border ${
                 isCameraActive
-                  ? "bg-white text-slate-900 border-white font-bold"
+                  ? "bg-emerald-500 text-white border-emerald-400 font-bold shadow-md"
                   : "bg-white/10 text-white hover:bg-white/20 border-white/15"
               }`}
               title="Toggle Live Camera Stream"
             >
-              <span className="material-symbols-outlined text-lg">
-                {isCameraActive ? "videocam" : "videocam_off"}
-              </span>
+              {isCameraActive ? <Video className="w-5 h-5" /> : <VideoOff className="w-5 h-5" />}
             </button>
 
             <button
@@ -262,7 +278,7 @@ export const ScannerView: React.FC<ScannerViewProps> = ({
               className="w-10 h-10 rounded-2xl bg-white/10 backdrop-blur-md flex items-center justify-center text-white hover:bg-white/20 transition-all cursor-pointer border border-white/15"
               title="Upload Cattle Image"
             >
-              <span className="material-symbols-outlined text-lg">photo_library</span>
+              <ImageIcon className="w-5 h-5" />
             </button>
             <input
               type="file"
@@ -275,33 +291,35 @@ export const ScannerView: React.FC<ScannerViewProps> = ({
         </div>
 
         {/* Mode Toggle Pill */}
-        <div className="flex justify-center max-w-xs mx-auto bg-black/40 backdrop-blur-xl p-1 rounded-2xl border border-white/15">
+        <div className="flex justify-center max-w-xs mx-auto bg-zinc-900/90 backdrop-blur-xl p-1 rounded-2xl border border-white/15">
           <button
             onClick={() => setScanMode("breed")}
-            className={`flex-1 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            className={`flex-1 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
               scanMode === "breed"
-                ? "bg-white text-slate-900 shadow-sm"
-                : "text-slate-400 hover:text-white"
+                ? "bg-white text-zinc-900 shadow-sm"
+                : "text-zinc-400 hover:text-white"
             }`}
           >
-            Breed AI Scan
+            <Scan className="w-3.5 h-3.5" />
+            <span>Breed AI</span>
           </button>
           <button
             onClick={() => setScanMode("noseprint")}
-            className={`flex-1 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            className={`flex-1 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
               scanMode === "noseprint"
-                ? "bg-white text-slate-900 shadow-sm"
-                : "text-slate-400 hover:text-white"
+                ? "bg-emerald-500 text-white shadow-sm"
+                : "text-zinc-400 hover:text-white"
             }`}
           >
-            Noseprint ID
+            <Fingerprint className="w-3.5 h-3.5" />
+            <span>Noseprint ID</span>
           </button>
         </div>
       </div>
 
       {/* Main Viewfinder Canvas */}
       <div className="relative flex-1 flex items-center justify-center p-4 my-20">
-        <div className="relative w-full max-w-sm aspect-[3/4] rounded-3xl overflow-hidden border border-white/20 bg-black shadow-2xl">
+        <div className="relative w-full max-w-sm aspect-[3/4] rounded-3xl overflow-hidden border border-white/20 bg-zinc-950 shadow-2xl">
           {isCameraActive ? (
             <video
               ref={videoRef}
@@ -318,12 +336,13 @@ export const ScannerView: React.FC<ScannerViewProps> = ({
             />
           )}
 
-          {/* Biometric Noseprint Reticle */}
+          {/* Biometric Rotating Reticle in Noseprint Mode */}
           {scanMode === "noseprint" && (
             <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-              <div className="w-48 h-48 rounded-full border-2 border-white/70 border-dashed animate-spin-slow flex items-center justify-center relative">
-                <div className="w-3 h-3 bg-white rounded-full animate-ping" />
-                <span className="absolute -top-3 text-[9px] font-mono font-bold bg-white text-slate-900 px-2 py-0.5 rounded-full shadow-xs">
+              <div className="relative w-48 h-48 rounded-full border-2 border-emerald-400/80 border-dashed animate-spin-slow flex items-center justify-center">
+                <div className="absolute inset-2 rounded-full border border-cyan-400/50 animate-spin-reverse" />
+                <div className="w-3 h-3 bg-emerald-400 rounded-full animate-ping" />
+                <span className="absolute -top-3 text-[9px] font-mono font-bold bg-emerald-500 text-white px-2.5 py-0.5 rounded-full shadow-xs">
                   MUZZLE LANDMARKS
                 </span>
               </div>
@@ -333,38 +352,43 @@ export const ScannerView: React.FC<ScannerViewProps> = ({
           {isCameraActive && (
             <button
               onClick={toggleCameraFacing}
-              className="absolute top-4 right-4 z-20 w-9 h-9 rounded-2xl bg-black/50 backdrop-blur-md text-white border border-white/20 flex items-center justify-center hover:bg-black/80"
+              className="absolute top-4 right-4 z-20 w-9 h-9 rounded-2xl bg-black/60 backdrop-blur-md text-white border border-white/20 flex items-center justify-center hover:bg-black/80 cursor-pointer"
               title="Flip Camera"
             >
-              <span className="material-symbols-outlined text-base">flip_camera_ios</span>
+              <SwitchCamera className="w-4 h-4" />
             </button>
           )}
 
-          {/* HUD Frame */}
-          <div className="absolute inset-6 border border-dashed border-white/50 rounded-2xl pointer-events-none flex flex-col justify-between p-3">
+          {/* HUD Corner Targeting Brackets */}
+          <div className="absolute inset-5 border border-dashed border-white/40 rounded-2xl pointer-events-none flex flex-col justify-between p-3">
             <div className="flex justify-between text-white font-mono text-[10px]">
-              <span className="bg-black/60 px-2 py-0.5 rounded-lg border border-white/10">
-                [{scanMode === "noseprint" ? "MUZZLE_ID" : "BREED_AI"}]
+              <span className="bg-black/70 px-2.5 py-0.5 rounded-lg border border-white/10">
+                [{scanMode === "noseprint" ? "MUZZLE_LANDMARK_ID" : "INDIGENOUS_BREED_AI"}]
               </span>
-              <span className="bg-black/60 px-2 py-0.5 rounded-lg border border-white/10">
+              <span className="bg-black/70 px-2.5 py-0.5 rounded-lg border border-white/10 text-emerald-400 font-bold">
                 {isCameraActive ? "LIVE WEBRTC" : "READY"}
               </span>
             </div>
+
             <div className="text-center font-mono text-[11px] font-bold text-white bg-black/80 py-1.5 px-3 rounded-xl backdrop-blur-md border border-white/15">
-              {isScanning ? scanStepText : scanMode === "noseprint" ? "Align Bovine Muzzle" : "Center Cattle in Frame"}
+              {isScanning
+                ? scanStepText
+                : scanMode === "noseprint"
+                ? "Align Cattle Muzzle in Center Ring"
+                : "Frame Cattle Head / Body"}
             </div>
           </div>
 
-          {/* Laser bar */}
+          {/* Scanning Laser Bar */}
           {isScanning && (
-            <div className="absolute inset-x-0 h-1 bg-white shadow-[0_0_20px_#ffffff] scanner-line top-1/2" />
+            <div className="absolute inset-x-0 h-1 bg-emerald-400 shadow-[0_0_24px_#10b981] animate-laser" />
           )}
         </div>
       </div>
 
       {/* Bottom Sample Palette & Scan Trigger */}
       {!scanResult && (
-        <div className="relative z-30 p-5 bg-gradient-to-t from-slate-950 via-slate-950/90 to-transparent space-y-3 max-w-lg mx-auto w-full">
+        <div className="relative z-30 p-5 bg-gradient-to-t from-black via-black/90 to-transparent space-y-3 max-w-lg mx-auto w-full">
           {!isCameraActive && (
             <div className="flex items-center justify-center gap-2 overflow-x-auto no-scrollbar">
               {AUTHENTIC_COW_SAMPLES.map((sample, idx) => (
@@ -377,7 +401,7 @@ export const ScannerView: React.FC<ScannerViewProps> = ({
                   disabled={isScanning}
                   className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all border cursor-pointer ${
                     activeImage === sample.url
-                      ? "bg-white text-slate-900 border-white font-extrabold shadow-sm"
+                      ? "bg-white text-zinc-900 border-white font-extrabold shadow-sm"
                       : "bg-white/10 text-white border-white/15 hover:bg-white/20"
                   }`}
                 >
@@ -390,11 +414,13 @@ export const ScannerView: React.FC<ScannerViewProps> = ({
           <button
             onClick={() => handleScanImage()}
             disabled={isScanning}
-            className="w-full py-3.5 rounded-2xl bg-white hover:bg-slate-100 text-slate-900 font-extrabold text-xs shadow-lg flex items-center justify-center gap-2 transition-all active:scale-95 cursor-pointer"
+            className="w-full py-4 rounded-2xl bg-white dark:bg-emerald-600 hover:bg-zinc-100 dark:hover:bg-emerald-500 text-zinc-900 dark:text-white font-extrabold text-xs shadow-xl flex items-center justify-center gap-2 transition-all active:scale-[0.98] cursor-pointer"
           >
-            <span className="material-symbols-outlined text-lg font-bold">
-              {scanMode === "noseprint" ? "fingerprint" : "center_focus_strong"}
-            </span>
+            {scanMode === "noseprint" ? (
+              <Fingerprint className="w-5 h-5 text-emerald-600 dark:text-white" />
+            ) : (
+              <Scan className="w-5 h-5 text-zinc-900 dark:text-white" />
+            )}
             <span>
               {isScanning
                 ? scanStepText
@@ -406,86 +432,95 @@ export const ScannerView: React.FC<ScannerViewProps> = ({
         </div>
       )}
 
-      {/* Clean White Result Bottom Sheet */}
-      {scanResult && (
-        <div className="fixed inset-x-0 bottom-0 z-40 bg-white text-slate-900 rounded-t-3xl p-5 shadow-2xl border-t border-slate-100 animate-slide-up space-y-3.5 max-w-lg mx-auto">
-          <div className="w-12 h-1 bg-slate-200 rounded-full mx-auto" />
+      {/* Clean Match Result Bottom Sheet */}
+      <AnimatePresence>
+        {scanResult && (
+          <motion.div
+            initial={{ opacity: 0, y: 100 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 100 }}
+            transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+            className="fixed inset-x-0 bottom-0 z-40 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white rounded-t-3xl p-5 shadow-2xl border-t border-zinc-200 dark:border-zinc-800 space-y-3.5 max-w-lg mx-auto"
+          >
+            <div className="w-12 h-1 bg-zinc-300 dark:bg-zinc-700 rounded-full mx-auto" />
 
-          <div className="flex justify-between items-start">
-            <div>
-              <span className="text-[10px] font-mono font-bold uppercase text-emerald-800 bg-emerald-100 px-2.5 py-0.5 rounded-full flex items-center gap-1 w-fit">
-                <span className="material-symbols-outlined text-xs">verified</span>
-                <span>{scanResult.confidence || 98}% Confidence</span>
-              </span>
-              <h3 className="text-xl font-extrabold text-slate-900 mt-1 font-display">
-                {translateBreedName(scanResult.breed, currentLang)}
-              </h3>
-              <p className="text-xs text-slate-500 font-mono">
-                {scanResult.scientificName || "Bos indicus"} • {scanResult.origin}
-              </p>
-            </div>
-            <button
-              onClick={() => setScanResult(null)}
-              className="p-1 rounded-full text-slate-400 hover:text-slate-700 cursor-pointer"
-            >
-              <span className="material-symbols-outlined text-lg">close</span>
-            </button>
-          </div>
-
-          <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100 flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-slate-900 text-white flex items-center justify-center font-bold">
-                <span className="material-symbols-outlined text-xl">fingerprint</span>
-              </div>
+            <div className="flex justify-between items-start">
               <div>
-                <span className="text-[10px] font-mono font-bold text-slate-400 uppercase block">
-                  NOSEPRINT BIOMETRIC ID
+                <span className="text-[10px] font-mono font-bold uppercase text-emerald-800 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-950/80 px-2.5 py-0.5 rounded-full flex items-center gap-1 w-fit">
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  <span>{scanResult.confidence || 98.4}% Confidence</span>
                 </span>
-                <span className="text-xs font-mono font-bold text-slate-900">
-                  {scanResult.noseprintId}
-                </span>
+                <h3 className="text-xl font-extrabold text-zinc-900 dark:text-white mt-1 font-display">
+                  {translateBreedName(scanResult.breed, currentLang)}
+                </h3>
+                <p className="text-xs text-zinc-500 dark:text-zinc-400 font-mono">
+                  {scanResult.scientificName || "Bos indicus"} • {scanResult.origin}
+                </p>
+              </div>
+              <button
+                onClick={() => setScanResult(null)}
+                className="p-1.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Extracted Biometric ID */}
+            <div className="p-3 bg-zinc-50 dark:bg-zinc-800/80 rounded-2xl border border-zinc-200/80 dark:border-zinc-700 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-zinc-900 dark:bg-emerald-600 text-white flex items-center justify-center font-bold">
+                  <Fingerprint className="w-5 h-5" />
+                </div>
+                <div>
+                  <span className="text-[10px] font-mono font-bold text-zinc-400 dark:text-zinc-500 uppercase block">
+                    NOSEPRINT BIOMETRIC ID
+                  </span>
+                  <span className="text-xs font-mono font-bold text-zinc-900 dark:text-white">
+                    {scanResult.noseprintId}
+                  </span>
+                </div>
+              </div>
+              <span className="text-[10px] font-mono font-bold bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 px-2 py-0.5 rounded-full">
+                VERIFIED
+              </span>
+            </div>
+
+            <p className="text-xs text-zinc-600 dark:text-zinc-300 bg-zinc-50 dark:bg-zinc-800/60 p-3 rounded-2xl border border-zinc-100 dark:border-zinc-800 leading-relaxed">
+              {scanResult.description}
+            </p>
+
+            <div className="grid grid-cols-2 gap-2 text-xs font-mono">
+              <div className="bg-zinc-50 dark:bg-zinc-800/60 p-2.5 rounded-2xl border border-zinc-100 dark:border-zinc-800">
+                <span className="text-[10px] text-zinc-400 block">{t("milkYield", currentLang)}</span>
+                <span className="font-bold text-zinc-900 dark:text-white">{scanResult.milkYield || "4-6L / day"}</span>
+              </div>
+              <div className="bg-zinc-50 dark:bg-zinc-800/60 p-2.5 rounded-2xl border border-zinc-100 dark:border-zinc-800">
+                <span className="text-[10px] text-zinc-400 block">{t("primaryUse", currentLang)}</span>
+                <span className="font-bold text-zinc-900 dark:text-white">{scanResult.primaryUse || "Dairy / Draught"}</span>
               </div>
             </div>
-            <span className="text-[10px] font-mono font-bold bg-slate-200 text-slate-800 px-2 py-0.5 rounded-full">
-              VERIFIED
-            </span>
-          </div>
 
-          <p className="text-xs text-slate-600 bg-slate-50 p-3 rounded-2xl border border-slate-100 leading-relaxed">
-            {scanResult.description}
-          </p>
-
-          <div className="grid grid-cols-2 gap-2 text-xs font-mono">
-            <div className="bg-slate-50 p-2.5 rounded-2xl border border-slate-100">
-              <span className="text-[10px] text-slate-400 block">{t("milkYield", currentLang)}</span>
-              <span className="font-bold text-slate-900">{scanResult.milkYield || "4-6L / day"}</span>
+            <div className="flex gap-2 pt-1">
+              <button
+                onClick={() => setScanResult(null)}
+                className="flex-1 py-3 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-200 font-bold text-xs rounded-2xl transition-colors cursor-pointer"
+              >
+                Scan Again
+              </button>
+              <button
+                onClick={() => {
+                  onDetectSuccess(scanResult);
+                  onTabChange("add-animal");
+                }}
+                className="flex-1 py-3 bg-zinc-900 dark:bg-emerald-600 hover:bg-zinc-800 dark:hover:bg-emerald-500 text-white font-bold text-xs rounded-2xl shadow-sm flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
+              >
+                <Award className="w-4 h-4" />
+                <span>{t("issueDigitalPassport", currentLang)}</span>
+              </button>
             </div>
-            <div className="bg-slate-50 p-2.5 rounded-2xl border border-slate-100">
-              <span className="text-[10px] text-slate-400 block">{t("primaryUse", currentLang)}</span>
-              <span className="font-bold text-slate-900">{scanResult.primaryUse || "Dairy / Draught"}</span>
-            </div>
-          </div>
-
-          <div className="flex gap-2 pt-1">
-            <button
-              onClick={() => setScanResult(null)}
-              className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-2xl transition-colors cursor-pointer"
-            >
-              Scan Again
-            </button>
-            <button
-              onClick={() => {
-                onDetectSuccess(scanResult);
-                onTabChange("add-animal");
-              }}
-              className="flex-1 py-3 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-2xl shadow-sm flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
-            >
-              <span className="material-symbols-outlined text-base">badge</span>
-              <span>{t("issueDigitalPassport", currentLang)}</span>
-            </button>
-          </div>
-        </div>
-      )}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

@@ -7,9 +7,12 @@ export interface PendingSyncItem {
   operation: "set" | "delete";
   data?: any;
   timestamp: string;
+  retryCount?: number;
+  lastAttempt?: string;
 }
 
 const SYNC_QUEUE_KEY = "cattleiq_pending_sync_queue";
+const MAX_RETRY_ATTEMPTS = 5;
 
 export function loadPendingSyncQueue(): PendingSyncItem[] {
   try {
@@ -28,6 +31,10 @@ export function savePendingSyncQueue(queue: PendingSyncItem[]): void {
   }
 }
 
+export function getPendingSyncCount(): number {
+  return loadPendingSyncQueue().length;
+}
+
 export function enqueueSyncOperation(
   collectionName: PendingSyncItem["collectionName"],
   docId: string,
@@ -35,6 +42,7 @@ export function enqueueSyncOperation(
   data?: any
 ): void {
   const queue = loadPendingSyncQueue();
+  // Filter out any duplicate pending operations on the exact same doc
   const filtered = queue.filter(
     (item) => !(item.collectionName === collectionName && item.docId === docId)
   );
@@ -44,8 +52,14 @@ export function enqueueSyncOperation(
     collectionName,
     docId,
     operation,
-    data,
+    data: data
+      ? {
+          ...data,
+          lastClientSyncAt: new Date().toISOString(),
+        }
+      : undefined,
     timestamp: new Date().toISOString(),
+    retryCount: 0,
   };
 
   filtered.push(newItem);
@@ -74,8 +88,23 @@ export async function flushSyncQueue(): Promise<number> {
         syncedCount++;
       }
     } catch (err) {
-      console.warn(`Sync failed for item ${item.docId}, keeping in queue:`, err);
-      remainingQueue.push(item);
+      const currentRetries = (item.retryCount || 0) + 1;
+      console.warn(
+        `Sync attempt ${currentRetries} failed for ${item.collectionName}/${item.docId}:`,
+        err
+      );
+
+      if (currentRetries < MAX_RETRY_ATTEMPTS) {
+        remainingQueue.push({
+          ...item,
+          retryCount: currentRetries,
+          lastAttempt: new Date().toISOString(),
+        });
+      } else {
+        console.error(
+          `Max retries (${MAX_RETRY_ATTEMPTS}) reached for ${item.collectionName}/${item.docId}. Evicting to preserve queue.`
+        );
+      }
     }
   }
 
@@ -88,7 +117,7 @@ if (typeof window !== "undefined") {
   window.addEventListener("online", () => {
     flushSyncQueue().then((count) => {
       if (count > 0) {
-        console.log(`Auto-synced ${count} offline changes to Firestore.`);
+        console.log(`[CattleIQ Offline Sync] Auto-synced ${count} offline changes to Firestore.`);
       }
     });
   });

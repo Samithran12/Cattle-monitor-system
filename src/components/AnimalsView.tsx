@@ -1,7 +1,20 @@
 import React, { useState } from "react";
 import { NativeBreed, Animal, TabType } from "../types";
-import { t, translateAnimalName, translateBreedName, translateStatus, Language } from "../utils/i18n";
+import { t, translateAnimalName, translateBreedName, translateStatus, translateGender, translateAge, translateBreedState, translateBreedField, Language } from "../utils/i18n";
 import { SmartImage } from "./ui/SmartImage";
+import { EmptyState } from "./ui/EmptyState";
+import { motion } from "motion/react";
+import {
+  Search,
+  Plus,
+  BookOpen,
+  Award,
+  Edit2,
+  Trash2,
+  CheckCircle2,
+  ArrowRight,
+  Sparkles
+} from "lucide-react";
 
 interface AnimalsViewProps {
   breeds: NativeBreed[];
@@ -42,7 +55,7 @@ export const AnimalsView: React.FC<AnimalsViewProps> = ({
       breedTranslated.toLowerCase().includes(searchQuery.toLowerCase());
 
     if (selectedHerdFilter === "All") return matchesSearch;
-    if (selectedHerdFilter === "Healthy") return matchesSearch && a.status === "Healthy";
+    if (selectedHerdFilter === "Healthy") return matchesSearch && (a.status === "Healthy" || a.healthScore >= 90);
     if (selectedHerdFilter === "Needs Attention") return matchesSearch && a.status === "Needs Attention";
     if (selectedHerdFilter === "Pregnant") return matchesSearch && (a.status === "Pregnant" || a.pregnancyStatus?.includes("Pregnant"));
     if (selectedHerdFilter === "Vaccine Due") return matchesSearch && a.vaccinationStatus !== "Up to Date";
@@ -66,15 +79,15 @@ export const AnimalsView: React.FC<AnimalsViewProps> = ({
   });
 
   return (
-    <main className="w-full px-4 py-4 pb-28 space-y-4 text-slate-900 font-sans">
+    <main className="w-full px-4 py-4 pb-28 space-y-4 text-zinc-900 dark:text-zinc-100 font-sans transition-colors duration-200">
       {/* Sub-tab Pill Switch */}
-      <div className="bg-slate-100 p-1 rounded-2xl flex items-center gap-1 border border-slate-200/60">
+      <div className="bg-zinc-100 dark:bg-zinc-900 p-1 rounded-2xl flex items-center gap-1 border border-zinc-200/80 dark:border-zinc-800">
         <button
           onClick={() => setSubTab("herd")}
           className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
             subTab === "herd"
-              ? "bg-white text-slate-900 shadow-xs font-extrabold"
-              : "text-slate-500 hover:text-slate-900"
+              ? "bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white shadow-xs font-extrabold"
+              : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white"
           }`}
         >
           <span className="material-symbols-outlined text-base">pets</span>
@@ -85,11 +98,11 @@ export const AnimalsView: React.FC<AnimalsViewProps> = ({
           onClick={() => setSubTab("breeds")}
           className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
             subTab === "breeds"
-              ? "bg-white text-slate-900 shadow-xs font-extrabold"
-              : "text-slate-500 hover:text-slate-900"
+              ? "bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white shadow-xs font-extrabold"
+              : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white"
           }`}
         >
-          <span className="material-symbols-outlined text-base">auto_stories</span>
+          <BookOpen className="w-4 h-4" />
           <span>{t("nativeBreedsTab", currentLang)} ({breeds.length})</span>
         </button>
       </div>
@@ -97,8 +110,8 @@ export const AnimalsView: React.FC<AnimalsViewProps> = ({
       {/* Search & Filter Controls */}
       <div className="space-y-2.5">
         <div className="relative">
-          <span className="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-lg">
-            search
+          <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400">
+            <Search className="w-4 h-4" />
           </span>
           <input
             type="text"
@@ -109,7 +122,7 @@ export const AnimalsView: React.FC<AnimalsViewProps> = ({
                 ? t("searchHerdPlaceholder", currentLang)
                 : t("searchBreedsPlaceholder", currentLang)
             }
-            className="w-full bg-white pl-10 pr-4 py-3 rounded-2xl border border-slate-200 text-xs font-medium text-slate-900 placeholder-slate-400 outline-none focus:border-slate-900 transition-colors shadow-xs"
+            className="w-full bg-white dark:bg-zinc-900 pl-10 pr-4 py-3 rounded-2xl border border-zinc-200 dark:border-zinc-800 text-xs font-medium text-zinc-900 dark:text-white placeholder-zinc-400 outline-none focus:border-zinc-900 dark:focus:border-emerald-500 transition-colors shadow-2xs"
           />
         </div>
 
@@ -121,10 +134,10 @@ export const AnimalsView: React.FC<AnimalsViewProps> = ({
                 <button
                   key={filter}
                   onClick={() => setSelectedHerdFilter(filter)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
                     selectedHerdFilter === filter
-                      ? "bg-slate-900 text-white shadow-xs"
-                      : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"
+                      ? "bg-zinc-900 dark:bg-emerald-600 text-white shadow-xs font-extrabold"
+                      : "bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800"
                   }`}
                 >
                   {filter === "All"
@@ -143,9 +156,9 @@ export const AnimalsView: React.FC<AnimalsViewProps> = ({
 
               <button
                 onClick={() => onTabChange("add-animal")}
-                className="px-3.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl flex items-center gap-1 shrink-0 ml-auto cursor-pointer"
+                className="px-3.5 py-1.5 bg-zinc-900 dark:bg-emerald-600 hover:bg-zinc-800 dark:hover:bg-emerald-500 text-white text-xs font-bold rounded-xl flex items-center gap-1 shrink-0 ml-auto cursor-pointer shadow-xs transition-all active:scale-95"
               >
-                <span className="material-symbols-outlined text-sm font-bold">add</span>
+                <Plus className="w-3.5 h-3.5" />
                 <span>{t("addAnimal", currentLang)}</span>
               </button>
             </>
@@ -157,8 +170,8 @@ export const AnimalsView: React.FC<AnimalsViewProps> = ({
                   onClick={() => setSelectedBreedFilter(filter)}
                   className={`px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
                     selectedBreedFilter === filter
-                      ? "bg-slate-900 text-white shadow-xs"
-                      : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"
+                      ? "bg-zinc-900 dark:bg-emerald-600 text-white shadow-xs font-extrabold"
+                      : "bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800"
                   }`}
                 >
                   {filter === "All"
@@ -189,144 +202,165 @@ export const AnimalsView: React.FC<AnimalsViewProps> = ({
         </div>
       </div>
 
-      {/* Roster Grid */}
+      {/* Main Content Grid */}
       {subTab === "herd" ? (
         filteredAnimals.length === 0 ? (
-          <div className="p-8 text-center bg-white rounded-3xl border border-slate-100 space-y-2">
-            <span className="material-symbols-outlined text-3xl text-slate-400">pets</span>
-            <h4 className="text-sm font-bold text-slate-900">{t("noAnimalsFound", currentLang)}</h4>
-            <p className="text-xs text-slate-500">{t("adjustFilterDesc", currentLang)}</p>
-          </div>
+          <EmptyState
+            icon="pets"
+            title={t("noAnimalsFound", currentLang)}
+            description={t("adjustFilterDesc", currentLang)}
+            actionText={t("addAnimal", currentLang)}
+            onAction={() => onTabChange("add-animal")}
+          />
         ) : (
           <div className="space-y-3">
             {filteredAnimals.map((animal) => (
-              <div
+              <motion.div
                 key={animal.id}
-                className="bg-white border border-slate-100 rounded-3xl p-4 shadow-[0_2px_14px_rgba(15,23,42,0.03)] space-y-3"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-3xl p-4 shadow-[0_2px_14px_rgba(0,0,0,0.02)] dark:shadow-none space-y-3 hover:border-zinc-300 dark:hover:border-zinc-700 transition-all"
               >
                 <div className="flex gap-3.5">
-                  <div className="relative w-22 h-22 rounded-2xl overflow-hidden bg-slate-100 shrink-0 border border-slate-100">
+                  <div className="relative w-22 h-22 rounded-2xl overflow-hidden bg-zinc-100 dark:bg-zinc-800 shrink-0 border border-zinc-100 dark:border-zinc-800">
                     <SmartImage
                       src={animal.photoUrl}
                       alt={animal.name}
                       className="w-full h-full"
                     />
-                    <span className="absolute bottom-1 right-1 bg-white text-slate-900 rounded-full p-0.5 shadow-xs">
-                      <span className="material-symbols-outlined text-[10px] font-bold">verified</span>
-                    </span>
+                    {animal.noseprintVerified && (
+                      <span className="absolute bottom-1 right-1 w-5 h-5 bg-emerald-500 text-white rounded-full flex items-center justify-center shadow-xs">
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                      </span>
+                    )}
                   </div>
 
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-1">
-                      <span className="text-[10px] font-mono font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded-full">
+                      <span className="text-[10px] font-mono font-bold text-zinc-700 dark:text-zinc-300 bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded-full">
                         {animal.tagId}
                       </span>
-                      <span className="text-[10px] font-mono font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
+                      <span
+                        className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full ${
+                          animal.status === "Healthy"
+                            ? "text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60"
+                            : "text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/60"
+                        }`}
+                      >
                         {translateStatus(animal.status, currentLang)}
                       </span>
                     </div>
 
-                    <h4 className="font-extrabold text-base text-slate-900 font-display mt-1 truncate">
+                    <h4 className="font-extrabold text-base text-zinc-900 dark:text-white font-display mt-1 truncate">
                       {translateAnimalName(animal.name, currentLang)}
                     </h4>
 
-                    <p className="text-xs text-slate-500 truncate mt-0.5">
-                      {translateBreedName(animal.breed, currentLang)} • {animal.age} • {animal.gender}
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400 truncate mt-0.5">
+                      {translateBreedName(animal.breed, currentLang)} • {translateAge(animal.age, currentLang)} • {translateGender(animal.gender, currentLang)}
                     </p>
 
-                    <div className="flex items-center gap-3 mt-1.5 text-[11px] font-mono text-slate-500">
-                      <span>Health: <strong className="text-slate-900">{animal.healthScore}%</strong></span>
+                    <div className="flex items-center gap-3 mt-1.5 text-[11px] font-mono text-zinc-500 dark:text-zinc-400">
+                      <span>
+                        {t("health", currentLang)}: <strong className="text-zinc-900 dark:text-white">{animal.healthScore}%</strong>
+                      </span>
                       {animal.dailyMilkLiters && (
-                        <span>Yield: <strong className="text-slate-900">{animal.dailyMilkLiters}L/d</strong></span>
+                        <span>
+                          {t("yield", currentLang)}: <strong className="text-zinc-900 dark:text-white">{animal.dailyMilkLiters} {t("literPerDay", currentLang)}</strong>
+                        </span>
                       )}
                     </div>
                   </div>
                 </div>
 
-                {/* Actions */}
-                <div className="grid grid-cols-3 gap-2 pt-2 border-t border-slate-100">
+                {/* Actions Grid */}
+                <div className="grid grid-cols-3 gap-2 pt-2 border-t border-zinc-100 dark:border-zinc-800">
                   <button
                     onClick={() => onSelectAnimal(animal)}
-                    className="col-span-2 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                    className="col-span-2 py-2.5 bg-zinc-900 dark:bg-emerald-600 hover:bg-zinc-800 dark:hover:bg-emerald-500 text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 transition-colors cursor-pointer active:scale-95 shadow-2xs"
                   >
-                    <span className="material-symbols-outlined text-base">badge</span>
+                    <Award className="w-3.5 h-3.5" />
                     <span>{t("digitalPassport", currentLang)}</span>
                   </button>
 
                   <div className="flex gap-1.5">
                     <button
                       onClick={() => onEditAnimal(animal)}
-                      className="flex-1 py-2 bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-xl border border-slate-200 flex items-center justify-center cursor-pointer"
+                      className="flex-1 py-2 bg-zinc-50 dark:bg-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-200 rounded-xl border border-zinc-200 dark:border-zinc-700 flex items-center justify-center cursor-pointer transition-colors"
                       title={t("edit", currentLang)}
                     >
-                      <span className="material-symbols-outlined text-base">edit</span>
+                      <Edit2 className="w-3.5 h-3.5" />
                     </button>
 
                     <button
                       onClick={() => onDeleteAnimal(animal)}
-                      className="flex-1 py-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl border border-red-200 flex items-center justify-center cursor-pointer"
+                      className="flex-1 py-2 bg-red-50 dark:bg-red-950/40 hover:bg-red-100 dark:hover:bg-red-900/60 text-red-600 dark:text-red-400 rounded-xl border border-red-200 dark:border-red-800 flex items-center justify-center cursor-pointer transition-colors"
                       title={t("delete", currentLang)}
                     >
-                      <span className="material-symbols-outlined text-base">delete</span>
+                      <Trash2 className="w-3.5 h-3.5" />
                     </button>
                   </div>
                 </div>
-              </div>
+              </motion.div>
             ))}
           </div>
         )
       ) : (
-        /* Indigenous Breeds Catalog (21+ Breeds) */
+        /* Indigenous Breeds Catalog */
         <div className="space-y-3">
           {filteredBreeds.map((breed) => (
-            <div
+            <motion.div
               key={breed.id}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
               onClick={() => onSelectBreed(breed)}
-              className="bg-white border border-slate-100 rounded-3xl p-4 shadow-xs space-y-3 cursor-pointer hover:border-slate-300 transition-all"
+              className="bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-3xl p-4 shadow-2xs space-y-3 cursor-pointer hover:border-zinc-300 dark:hover:border-zinc-700 transition-all group"
             >
               <div className="flex gap-3.5">
-                <div className="relative w-22 h-22 rounded-2xl overflow-hidden bg-slate-100 shrink-0">
+                <div className="relative w-22 h-22 rounded-2xl overflow-hidden bg-zinc-100 dark:bg-zinc-800 shrink-0">
                   <SmartImage
                     src={breed.imageUrl}
                     alt={breed.name}
-                    className="w-full h-full"
+                    className="w-full h-full group-hover:scale-105 transition-transform"
                   />
                 </div>
 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-mono font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full">
-                      {breed.state}
+                    <span className="text-[10px] font-mono font-bold text-zinc-600 dark:text-zinc-300 bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded-full">
+                      {translateBreedState(breed.state, currentLang)}
                     </span>
                     {breed.incentivesActive && (
-                      <span className="text-[9px] font-mono font-bold text-emerald-800 bg-emerald-100 px-1.5 py-0.2 rounded-full">
-                        GOVT SUBSIDY
+                      <span className="text-[9px] font-mono font-bold text-emerald-800 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-950/80 px-1.5 py-0.2 rounded-full flex items-center gap-1">
+                        <Sparkles className="w-2.5 h-2.5" />
+                        <span>{t("govtSubsidy", currentLang)}</span>
                       </span>
                     )}
                   </div>
 
-                  <h4 className="font-extrabold text-sm text-slate-900 font-display mt-1 truncate">
+                  <h4 className="font-extrabold text-sm text-zinc-900 dark:text-white font-display mt-1 truncate">
                     {translateBreedName(breed.name, currentLang)}
                   </h4>
 
-                  <p className="text-xs text-slate-500 truncate mt-0.5">
-                    {breed.origin} • {breed.primaryUse}
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400 truncate mt-0.5">
+                    {breed.origin} • {t(breed.primaryUse.toLowerCase() === "dairy" ? "dairy" : breed.primaryUse.toLowerCase() === "draught" ? "draught" : "dualPurpose", currentLang) || breed.primaryUse}
                   </p>
 
-                  <p className="text-[11px] text-slate-600 line-clamp-2 mt-1 leading-snug">
-                    {breed.description}
+                  <p className="text-[11px] text-zinc-600 dark:text-zinc-300 line-clamp-2 mt-1 leading-snug">
+                    {translateBreedField(breed.description, currentLang)}
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-xs text-slate-500">
-                <span>Yield: <strong className="text-slate-900">{breed.avgMilkYield}</strong></span>
-                <span className="text-slate-900 font-bold flex items-center gap-0.5">
+              <div className="flex items-center justify-between pt-2 border-t border-zinc-100 dark:border-zinc-800 text-xs text-zinc-500 dark:text-zinc-400">
+                <span>
+                  {t("yield", currentLang)}: <strong className="text-zinc-900 dark:text-white">{breed.avgMilkYield.replace("Liters / day", t("literPerDay", currentLang))}</strong>
+                </span>
+                <span className="text-zinc-900 dark:text-emerald-400 font-bold flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
                   <span>{t("viewDetails", currentLang)}</span>
-                  <span className="material-symbols-outlined text-sm">arrow_forward</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
                 </span>
               </div>
-            </div>
+            </motion.div>
           ))}
         </div>
       )}

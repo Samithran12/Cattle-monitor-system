@@ -1,70 +1,67 @@
-import React, { useState } from "react";
+import React from "react";
 import { Animal } from "../types";
+import { t, translateAnimalName, Language } from "../utils/i18n";
+import { motion } from "motion/react";
+import { AlertTriangle, Trash2 } from "lucide-react";
 
 interface DeleteConfirmModalProps {
-  animal: Animal;
+  animal: Animal | null;
   onConfirmDelete: (animalId: string) => void;
   onClose: () => void;
+  userLanguage?: Language;
 }
 
 export const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
   animal,
   onConfirmDelete,
   onClose,
+  userLanguage = "English",
 }) => {
-  const [isDeleting, setIsDeleting] = useState(false);
-
-  const handleDelete = () => {
-    setIsDeleting(true);
-    setTimeout(() => {
-      onConfirmDelete(animal.id);
-      setIsDeleting(false);
-      onClose();
-    }, 400);
-  };
+  if (!animal) return null;
+  const currentLang = userLanguage;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-white text-slate-900 w-full max-w-md rounded-3xl p-6 shadow-2xl border border-slate-100 space-y-4 animate-slide-up">
-        <div className="w-12 h-12 bg-red-50 text-red-600 border border-red-200 rounded-2xl flex items-center justify-center mx-auto">
-          <span className="material-symbols-outlined text-2xl font-bold">
-            delete_forever
-          </span>
+    <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.92, y: 15 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.92, y: 15 }}
+        transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+        className="bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 w-full max-w-sm rounded-3xl p-6 shadow-2xl border border-zinc-100 dark:border-zinc-800 space-y-4 text-center"
+      >
+        <div className="w-14 h-14 rounded-2xl bg-red-100 dark:bg-red-950/60 text-red-600 dark:text-red-400 mx-auto flex items-center justify-center border border-red-200 dark:border-red-900/50">
+          <AlertTriangle className="w-6 h-6" />
         </div>
 
-        <div className="text-center space-y-1">
-          <h3 className="font-extrabold text-base text-slate-900 font-display">
-            Remove {animal.name}?
+        <div className="space-y-1.5">
+          <h3 className="font-extrabold text-base text-zinc-900 dark:text-white font-display">
+            {t("delete", currentLang)} {translateAnimalName(animal.name, currentLang)}?
           </h3>
-          <p className="text-xs text-slate-500 leading-relaxed">
-            Tag ID: <strong className="text-slate-900">{animal.tagId}</strong> ({animal.breed}). This will delete the animal's biometric digital passport and medical timeline.
+          <p className="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed">
+            {currentLang === "Tamil"
+              ? `டேக் எண் ${animal.tagId} உடைய மாட்டை உங்கள் மந்தை பதிவேட்டில் இருந்து நிரந்தரமாக நீக்க விரும்புகிறீர்களா?`
+              : currentLang === "Hindi"
+              ? `क्या आप वाकई टैग आईडी ${animal.tagId} को अपने रिकॉर्ड से स्थायी रूप से हटाना चाहते हैं?`
+              : `Are you sure you want to permanently remove tag ID ${animal.tagId} from your herd? This action cannot be undone.`}
           </p>
         </div>
 
-        <div className="flex gap-2.5 pt-2">
+        <div className="grid grid-cols-2 gap-2 pt-2">
+          <button
+            onClick={() => onConfirmDelete(animal.id)}
+            className="py-3 rounded-2xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs shadow-sm transition-all cursor-pointer active:scale-95 flex items-center justify-center gap-1.5"
+          >
+            <Trash2 className="w-4 h-4" />
+            <span>{t("delete", currentLang)}</span>
+          </button>
           <button
             onClick={onClose}
-            className="flex-1 py-3 rounded-2xl text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors cursor-pointer"
+            className="py-3 rounded-2xl bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 font-bold text-xs transition-colors cursor-pointer"
           >
-            Cancel
-          </button>
-
-          <button
-            onClick={handleDelete}
-            disabled={isDeleting}
-            className="flex-1 py-3 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white font-bold text-xs rounded-2xl shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95"
-          >
-            {isDeleting ? (
-              <>
-                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                <span>Removing...</span>
-              </>
-            ) : (
-              <span>Confirm Delete</span>
-            )}
+            {t("cancel", currentLang)}
           </button>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 };

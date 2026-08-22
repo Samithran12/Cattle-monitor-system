@@ -48,13 +48,14 @@ export const SmartImage: React.FC<SmartImageProps> = ({
 
   return (
     <div
-      className={`relative overflow-hidden bg-slate-100 ${className}`}
+      className={`relative overflow-hidden bg-zinc-100 dark:bg-zinc-800 ${className}`}
       style={aspectRatio ? { aspectRatio } : undefined}
     >
       {/* Loading Skeleton Shimmer */}
       {isLoading && (
-        <div className="absolute inset-0 bg-gradient-to-r from-slate-100 via-slate-200 to-slate-100 animate-pulse flex items-center justify-center">
-          <span className="material-symbols-outlined text-slate-300 text-2xl animate-spin">
+        <div className="absolute inset-0 bg-zinc-200/70 dark:bg-zinc-800 flex items-center justify-center">
+          <div className="absolute inset-0 animate-shimmer" />
+          <span className="material-symbols-outlined text-zinc-400 text-2xl animate-spin z-10">
             progress_activity
           </span>
         </div>
@@ -65,6 +66,7 @@ export const SmartImage: React.FC<SmartImageProps> = ({
         src={currentSrc}
         alt={alt}
         loading="lazy"
+        decoding="async"
         onLoad={handleLoad}
         onError={handleError}
         className={`w-full h-full object-cover transition-opacity duration-300 ${
@@ -75,7 +77,7 @@ export const SmartImage: React.FC<SmartImageProps> = ({
 
       {/* Fallback Badge if fallback is active */}
       {hasError && (
-        <div className="absolute bottom-1 right-1 bg-slate-900/60 backdrop-blur-xs text-white text-[9px] font-mono px-1.5 py-0.5 rounded">
+        <div className="absolute bottom-1 right-1 bg-black/70 backdrop-blur-xs text-white text-[9px] font-mono px-1.5 py-0.5 rounded">
           Verified Asset
         </div>
       )}

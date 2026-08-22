@@ -1,277 +1,208 @@
 import React, { useState, useEffect, useRef } from "react";
 import { TabType, Animal, UserProfile } from "../types";
-import { parseVoiceIntent } from "../services/geminiService";
+import { speakResponse, SpeechRecognizer } from "../services/voiceAssistant";
 import { Language } from "../utils/i18n";
+import { motion, AnimatePresence } from "motion/react";
+import { Mic, MicOff, Sparkles, X } from "lucide-react";
 
 interface VoiceAssistantWidgetProps {
   currentTab: TabType;
-  userLanguage: string;
-  onNavigate: (tab: TabType) => void;
-  onOpenScanner: () => void;
-  onOpenAddAnimal: () => void;
-  onChangeLanguage: (lang: Language) => void;
-  onToggleDarkMode: () => void;
-  animals: Animal[];
+  onTabChange: (tab: TabType) => void;
   user: UserProfile;
+  animals: Animal[];
+  userLanguage?: Language | string;
 }
 
 export const VoiceAssistantWidget: React.FC<VoiceAssistantWidgetProps> = ({
   currentTab,
-  userLanguage = "English",
-  onNavigate,
-  onOpenScanner,
-  onOpenAddAnimal,
-  onChangeLanguage,
+  onTabChange,
   animals,
-  user,
+  userLanguage = "English",
 }) => {
-  const currentLang = userLanguage as Language;
   const [isOpen, setIsOpen] = useState(false);
   const [isListening, setIsListening] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false);
   const [transcript, setTranscript] = useState("");
-  const [aiResponse, setAiResponse] = useState<string | null>(null);
-  const [statusMessage, setStatusMessage] = useState("Tap microphone or speak");
-  const [history, setHistory] = useState<Array<{ sender: "user" | "ai"; text: string }>>([]);
-
-  const recognitionRef = useRef<any>(null);
-
-  const suggestedCommands =
-    currentLang === "Tamil"
-      ? [
-          "மாடுகளை காட்டு",
-          "புதிய மாடு பதிவு செய்",
-          "தீவனம் வாங்க வேண்டும்",
-          "இன்றைய பணிகள் என்ன?",
-          "மருத்துவருக்கு அழை",
-        ]
-      : currentLang === "Hindi"
-      ? [
-          "मेरे पशु दिखाओ",
-          "नया पशु जोड़ें",
-          "चारा खरीदना है",
-          "आज के कार्य दिखाओ",
-          "डॉक्टर को बुलाओ",
-        ]
-      : [
-          "Show my cattle",
-          "Register a new cow",
-          "I want to buy fodder",
-          "What are today's tasks?",
-          "Emergency vet call",
-        ];
-
-  useEffect(() => {
-    const SpeechRecognition =
-      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-
-    if (SpeechRecognition) {
-      const recognition = new SpeechRecognition();
-      recognition.continuous = false;
-      recognition.interimResults = false;
-      recognition.lang =
-        currentLang === "Tamil"
-          ? "ta-IN"
-          : currentLang === "Hindi"
-          ? "hi-IN"
-          : "en-IN";
-
-      recognition.onstart = () => {
-        setIsListening(true);
-        setStatusMessage(
-          currentLang === "Tamil" ? "கேட்கிறது..." : currentLang === "Hindi" ? "सुन रहा हूँ..." : "Listening..."
-        );
-      };
-
-      recognition.onresult = (event: any) => {
-        const text = event.results[0][0].transcript;
-        setTranscript(text);
-        handleVoiceInput(text);
-      };
-
-      recognition.onerror = (event: any) => {
-        setIsListening(false);
-        setIsProcessing(false);
-        setStatusMessage("Mic ready. Tap to speak.");
-      };
-
-      recognition.onend = () => {
-        setIsListening(false);
-      };
-
-      recognitionRef.current = recognition;
-    }
-  }, [currentLang]);
-
-  const speakText = (text: string) => {
-    if (!("speechSynthesis" in window)) return;
-    try {
-      window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.rate = 1.0;
-      utterance.pitch = 1.0;
-      if (currentLang === "Tamil") utterance.lang = "ta-IN";
-      else if (currentLang === "Hindi") utterance.lang = "hi-IN";
-      else utterance.lang = "en-IN";
-      window.speechSynthesis.speak(utterance);
-    } catch {
-      // Speech synthesis fallback
-    }
-  };
-
-  const handleVoiceInput = async (userInput: string) => {
-    if (!userInput.trim()) return;
-
-    setIsProcessing(true);
-    setStatusMessage("Processing query...");
-    setHistory((prev) => [...prev, { sender: "user", text: userInput }]);
-
-    try {
-      const result = await parseVoiceIntent(userInput, currentLang);
-
-      const responseSpeech = result.speakText || result.responseText || "Understood";
-      setAiResponse(result.responseText || "");
-      setHistory((prev) => [...prev, { sender: "ai", text: result.responseText || responseSpeech }]);
-      speakText(responseSpeech);
-
-      if (result.type === "function_call") {
-        if (result.functionName === "navigate_tab" && result.args?.tab) {
-          setTimeout(() => {
-            onNavigate(result.args?.tab as TabType);
-          }, 1000);
-        } else if (result.functionName === "open_scanner") {
-          setTimeout(() => onOpenScanner(), 800);
-        } else if (result.functionName === "open_add_animal") {
-          setTimeout(() => onOpenAddAnimal(), 800);
-        } else if (result.functionName === "open_marketplace") {
-          setTimeout(() => onNavigate("market"), 800);
-        } else if (result.functionName === "set_language" && result.args?.language) {
-          onChangeLanguage(result.args.language as Language);
-        }
-      }
-    } catch {
-      setAiResponse("Understood query.");
-    } finally {
-      setIsProcessing(false);
-      setStatusMessage("Tap microphone or speak");
-    }
-  };
-
-  const toggleListening = () => {
-    if (isListening) {
-      recognitionRef.current?.stop();
-    } else {
-      setTranscript("");
-      setAiResponse(null);
-      try {
-        recognitionRef.current?.start();
-      } catch {
-        // Recognition fallback
-      }
-    }
-  };
+  const [responseMsg, setResponseMsg] = useState("");
+  const recognizerRef = useRef<SpeechRecognizer | null>(null);
+  const currentLang = (userLanguage as Language) || "English";
 
   if (currentTab === "scanner") return null;
 
+  const getLangCode = () => {
+    if (currentLang === "Tamil") return "ta-IN";
+    if (currentLang === "Hindi") return "hi-IN";
+    return "en-IN";
+  };
+
+  const startListening = () => {
+    const langCode = getLangCode();
+    const recognizer = new SpeechRecognizer(langCode);
+    recognizerRef.current = recognizer;
+
+    if (!recognizer.isSupported) {
+      setResponseMsg("Speech recognition is not supported on this device/browser.");
+      return;
+    }
+
+    setIsListening(true);
+    setTranscript("");
+    setResponseMsg(
+      currentLang === "Tamil"
+        ? "கேட்கிறேன்... சொல்லுங்கள்"
+        : currentLang === "Hindi"
+        ? "सुन रहा हूँ... बोलिए"
+        : "Listening... speak your command"
+    );
+
+    recognizer.startListening(
+      (text, isFinal) => {
+        setTranscript(text);
+        if (isFinal && text.trim()) {
+          processVoiceCommand(text.trim());
+        }
+      },
+      () => {
+        setIsListening(false);
+        setResponseMsg("Couldn't hear clearly. Tap mic to try again.");
+      },
+      () => {
+        setIsListening(false);
+      }
+    );
+  };
+
+  const stopListening = () => {
+    if (recognizerRef.current) {
+      recognizerRef.current.stopListening();
+    }
+    setIsListening(false);
+  };
+
+  const processVoiceCommand = (text: string) => {
+    const lower = text.toLowerCase();
+    let reply = "";
+    let targetTab: TabType | null = null;
+
+    if (lower.includes("scan") || lower.includes("camera") || lower.includes("noseprint") || lower.includes("ஸ்கேன்")) {
+      targetTab = "scanner";
+      reply = currentLang === "Tamil" ? "கால்நடை ஸ்கேனர் திறக்கப்படுகிறது..." : "Opening Biometric Scanner...";
+    } else if (lower.includes("herd") || lower.includes("cows") || lower.includes("animals") || lower.includes("மாடுகள்") || lower.includes("மந்தை")) {
+      targetTab = "animals";
+      reply = currentLang === "Tamil" ? `உங்கள் பண்ணையில் ${animals.length} மாடுகள் பதிவு செய்யப்பட்டுள்ளன.` : `Showing your herd of ${animals.length} registered cattle.`;
+    } else if (lower.includes("market") || lower.includes("buy") || lower.includes("sell") || lower.includes("விலை") || lower.includes("சந்தை")) {
+      targetTab = "market";
+      reply = currentLang === "Tamil" ? "கால்நடை சந்தை திறக்கப்படுகிறது..." : "Navigating to CattleIQ Marketplace...";
+    } else if (lower.includes("advisor") || lower.includes("feed") || lower.includes("doctor") || lower.includes("உதவி") || lower.includes("ஆலோசனை")) {
+      targetTab = "advisor";
+      reply = currentLang === "Tamil" ? "AI கால்நடை ஆலோசகர் திறக்கப்படுகிறது..." : "Opening AI Livestock Advisor...";
+    } else if (lower.includes("task") || lower.includes("today") || lower.includes("வேலை")) {
+      targetTab = "tasks";
+      reply = currentLang === "Tamil" ? "இன்றைய பணிகளைப் பார்க்கிறீர்கள்..." : "Opening Today's Smart Care Tasks...";
+    } else if (lower.includes("home") || lower.includes("முகப்பு")) {
+      targetTab = "home";
+      reply = currentLang === "Tamil" ? "முகப்புப் பக்கத்திற்கு செல்கிறது..." : "Going to Dashboard Home...";
+    } else {
+      reply = currentLang === "Tamil" ? `புரிந்துகொண்டேன்: "${text}"` : `Understood: "${text}"`;
+    }
+
+    setResponseMsg(reply);
+    speakResponse(reply, getLangCode());
+
+    if (targetTab) {
+      setTimeout(() => {
+        onTabChange(targetTab!);
+        setIsOpen(false);
+      }, 1000);
+    }
+  };
+
   return (
     <>
-      {/* Floating Microphone Trigger */}
-      <div className="fixed bottom-20 inset-x-0 max-w-md mx-auto pointer-events-none px-4 flex justify-end z-40">
-        <button
+      {/* Floating Orb Button */}
+      <div className="fixed bottom-22 right-4 z-40">
+        <motion.button
+          whileTap={{ scale: 0.9 }}
+          whileHover={{ scale: 1.05 }}
           onClick={() => {
             setIsOpen(true);
-            setTimeout(() => toggleListening(), 300);
+            startListening();
           }}
-          className="pointer-events-auto w-13 h-13 rounded-full bg-slate-900 hover:bg-slate-800 text-white shadow-xl flex items-center justify-center cursor-pointer transition-all active:scale-95 border border-slate-700"
+          className="w-13 h-13 rounded-full bg-zinc-900 dark:bg-emerald-600 text-white shadow-xl flex items-center justify-center cursor-pointer border-2 border-white dark:border-zinc-800 ring-4 ring-emerald-500/20 active:scale-95 group"
           title="Voice Assistant"
         >
-          <span className="material-symbols-outlined text-2xl font-bold">mic</span>
-        </button>
+          <Mic className="w-6 h-6 group-hover:scale-110 transition-transform" />
+        </motion.button>
       </div>
 
-      {/* Voice Assistant Modal */}
-      {isOpen && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center p-3">
-          <div className="bg-white text-slate-900 w-full max-w-md rounded-3xl p-5 shadow-2xl border border-slate-100 space-y-4 animate-slide-up">
-            {/* Header */}
-            <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full bg-slate-900 text-white flex items-center justify-center">
-                  <span className="material-symbols-outlined text-base font-bold">mic</span>
+      {/* Voice Assistant Sheet */}
+      <AnimatePresence>
+        {isOpen && (
+          <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center p-3">
+            <motion.div
+              initial={{ opacity: 0, y: 50, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 50, scale: 0.95 }}
+              className="bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white w-full max-w-sm rounded-3xl p-6 shadow-2xl border border-zinc-100 dark:border-zinc-800 space-y-4 text-center"
+            >
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-1.5 text-xs font-mono font-bold text-emerald-700 dark:text-emerald-400 uppercase">
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>CattleIQ Voice Assistant</span>
                 </div>
-                <h3 className="font-extrabold text-sm text-slate-900 font-display">
-                  Voice Assistant
-                </h3>
+                <button
+                  onClick={() => {
+                    stopListening();
+                    setIsOpen(false);
+                  }}
+                  className="w-7 h-7 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 flex items-center justify-center cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
               </div>
 
-              <button
-                onClick={() => {
-                  window.speechSynthesis?.cancel();
-                  setIsOpen(false);
-                }}
-                className="w-7 h-7 rounded-full bg-slate-100 text-slate-500 hover:text-slate-900 flex items-center justify-center"
-              >
-                <span className="material-symbols-outlined text-base">close</span>
-              </button>
-            </div>
+              {/* Pulsating Voice Mic Core */}
+              <div className="relative w-24 h-24 mx-auto flex items-center justify-center">
+                {isListening && (
+                  <>
+                    <div className="absolute inset-0 rounded-full bg-emerald-500/20 animate-ping" />
+                    <div className="absolute inset-2 rounded-full bg-emerald-500/30 animate-pulse" />
+                  </>
+                )}
+                <button
+                  type="button"
+                  onClick={() => (isListening ? stopListening() : startListening())}
+                  className={`relative z-10 w-16 h-16 rounded-full flex items-center justify-center text-white shadow-lg transition-all cursor-pointer ${
+                    isListening ? "bg-red-500 scale-105" : "bg-zinc-900 dark:bg-emerald-600"
+                  }`}
+                >
+                  {isListening ? <Mic className="w-7 h-7 animate-pulse" /> : <MicOff className="w-7 h-7" />}
+                </button>
+              </div>
 
-            {/* Mic Visualizer Area */}
-            <div className="py-6 flex flex-col items-center justify-center space-y-3">
-              <button
-                onClick={toggleListening}
-                className={`w-20 h-20 rounded-full flex items-center justify-center shadow-lg transition-all cursor-pointer ${
-                  isListening
-                    ? "bg-red-500 text-white ring-8 ring-red-100 animate-pulse"
-                    : isProcessing
-                    ? "bg-slate-900 text-white animate-spin"
-                    : "bg-slate-900 text-white hover:scale-105"
-                }`}
-              >
-                <span className="material-symbols-outlined text-3xl font-bold">
-                  {isProcessing ? "progress_activity" : "mic"}
-                </span>
-              </button>
+              <div className="space-y-1">
+                <p className="text-xs font-bold text-zinc-900 dark:text-white">
+                  {transcript || (isListening ? "Listening to your voice..." : "Tap mic to speak")}
+                </p>
+                <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium">
+                  {responseMsg}
+                </p>
+              </div>
 
-              <p className="text-xs font-bold text-slate-700 font-mono">
-                {statusMessage}
-              </p>
-
-              {transcript && (
-                <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs text-slate-800 font-medium max-w-xs text-center">
-                  "{transcript}"
-                </div>
-              )}
-
-              {aiResponse && (
-                <div className="p-3 bg-slate-900 text-white rounded-2xl text-xs leading-relaxed max-w-xs text-center font-medium shadow-xs">
-                  {aiResponse}
-                </div>
-              )}
-            </div>
-
-            {/* Quick Command Suggestions */}
-            <div className="space-y-1.5 pt-1 border-t border-slate-100">
-              <span className="text-[10px] font-bold uppercase text-slate-400">
-                Suggested Commands:
-              </span>
-              <div className="flex flex-wrap gap-1.5">
-                {suggestedCommands.map((cmd, i) => (
+              <div className="flex flex-wrap justify-center gap-1.5 pt-1">
+                {["Scan Cattle", "My Herd", "Today's Tasks", "Marketplace"].map((cmd) => (
                   <button
-                    key={i}
-                    onClick={() => {
-                      setTranscript(cmd);
-                      handleVoiceInput(cmd);
-                    }}
-                    className="px-2.5 py-1 bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-full text-[11px] font-semibold border border-slate-200 transition-colors cursor-pointer"
+                    key={cmd}
+                    onClick={() => processVoiceCommand(cmd)}
+                    className="px-2.5 py-1 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 rounded-full text-[10px] font-semibold hover:bg-zinc-200 dark:hover:bg-zinc-700 cursor-pointer"
                   >
-                    {cmd}
+                    "{cmd}"
                   </button>
                 ))}
               </div>
-            </div>
+            </motion.div>
           </div>
-        </div>
-      )}
+        )}
+      </AnimatePresence>
     </>
   );
 };

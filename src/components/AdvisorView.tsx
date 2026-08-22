@@ -1,6 +1,18 @@
 import React, { useState, useRef, useEffect } from "react";
 import { AdvisorMessage, TabType } from "../types";
 import { t, Language } from "../utils/i18n";
+import { motion, AnimatePresence } from "motion/react";
+import {
+  Brain,
+  Trash2,
+  Image as ImageIcon,
+  ArrowUp,
+  Sparkles,
+  TrendingUp,
+  ShieldAlert,
+  BarChart3,
+  Lightbulb
+} from "lucide-react";
 
 interface AdvisorViewProps {
   messages: AdvisorMessage[];
@@ -54,19 +66,19 @@ export const AdvisorView: React.FC<AdvisorViewProps> = ({
   };
 
   return (
-    <main className="w-full px-4 py-4 pb-32 flex flex-col h-[calc(100vh-140px)] text-slate-900 font-sans">
+    <main className="w-full px-4 py-4 pb-32 flex flex-col h-[calc(100vh-140px)] text-zinc-900 dark:text-zinc-100 font-sans transition-colors duration-200">
       {/* Top Header */}
-      <div className="bg-white border border-slate-100 rounded-3xl p-4 shadow-xs flex items-center justify-between gap-3 shrink-0 mb-3">
+      <div className="bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-3xl p-4 shadow-xs flex items-center justify-between gap-3 shrink-0 mb-3">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-slate-900 text-white flex items-center justify-center">
-            <span className="material-symbols-outlined text-xl">psychology</span>
+          <div className="w-10 h-10 rounded-2xl bg-purple-600 text-white flex items-center justify-center shadow-xs">
+            <Brain className="w-5 h-5" />
           </div>
           <div>
-            <h2 className="font-extrabold text-sm text-slate-900 font-display">
+            <h2 className="font-extrabold text-sm text-zinc-900 dark:text-white font-display">
               {t("aiAdvisorTitle", currentLang)}
             </h2>
-            <p className="text-[11px] text-slate-500">
-              Livestock economics & veterinary guidance
+            <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
+              {t("advisorSubtitle", currentLang)}
             </p>
           </div>
         </div>
@@ -74,10 +86,10 @@ export const AdvisorView: React.FC<AdvisorViewProps> = ({
         {onClearHistory && messages.length > 0 && (
           <button
             onClick={onClearHistory}
-            className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
-            title="Clear Chat History"
+            className="p-2 rounded-xl text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+            title={t("clearChat", currentLang)}
           >
-            <span className="material-symbols-outlined text-lg">delete_sweep</span>
+            <Trash2 className="w-4 h-4" />
           </button>
         )}
       </div>
@@ -85,15 +97,18 @@ export const AdvisorView: React.FC<AdvisorViewProps> = ({
       {/* Messages Container */}
       <div className="flex-1 overflow-y-auto space-y-3.5 pr-1 no-scrollbar">
         {messages.map((msg) => (
-          <div
+          <motion.div
             key={msg.id}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.25 }}
             className={`flex flex-col ${msg.sender === "user" ? "items-end" : "items-start"}`}
           >
             <div
               className={`max-w-[85%] sm:max-w-[75%] rounded-3xl p-4 text-xs font-medium leading-relaxed shadow-xs ${
                 msg.sender === "user"
-                  ? "bg-slate-900 text-white rounded-br-xs"
-                  : "bg-white text-slate-800 border border-slate-100 rounded-bl-xs"
+                  ? "bg-zinc-900 dark:bg-emerald-700 text-white rounded-br-xs"
+                  : "bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-200 border border-zinc-100 dark:border-zinc-800 rounded-bl-xs"
               }`}
             >
               {msg.image && (
@@ -106,29 +121,27 @@ export const AdvisorView: React.FC<AdvisorViewProps> = ({
 
               {/* Bento ROI / Financial Card */}
               {msg.bento && (
-                <div className="mt-3 pt-3 border-t border-slate-100 grid grid-cols-2 gap-2 text-slate-900 font-mono">
+                <div className="mt-3 pt-3 border-t border-zinc-100 dark:border-zinc-800 grid grid-cols-2 gap-2 text-zinc-900 dark:text-zinc-100 font-mono">
                   {msg.bento.estimatedRoi && (
-                    <div className="bg-slate-50 p-2 rounded-xl border border-slate-100">
-                      <span className="text-[9px] text-slate-400 uppercase block">Est. ROI</span>
-                      <span className="font-bold text-xs text-emerald-700">{msg.bento.estimatedRoi}</span>
-                    </div>
-                  )}
-                  {msg.bento.initialHerdSize && (
-                    <div className="bg-slate-50 p-2 rounded-xl border border-slate-100">
-                      <span className="text-[9px] text-slate-400 uppercase block">Recommended</span>
-                      <span className="font-bold text-xs">{msg.bento.initialHerdSize}</span>
-                    </div>
-                  )}
-                  {msg.bento.riskLevel && (
-                    <div className="bg-slate-50 p-2 rounded-xl border border-slate-100">
-                      <span className="text-[9px] text-slate-400 uppercase block">Risk Profile</span>
-                      <span className="font-bold text-xs">{msg.bento.riskLevel}</span>
+                    <div className="bg-zinc-50 dark:bg-zinc-800/60 p-2 rounded-xl border border-zinc-100 dark:border-zinc-700">
+                      <span className="text-[9px] text-zinc-400 uppercase flex items-center gap-1">
+                        <TrendingUp className="w-3 h-3 text-emerald-500" />
+                        <span>Est. ROI</span>
+                      </span>
+                      <span className="font-extrabold text-sm text-emerald-600 dark:text-emerald-400">
+                        {msg.bento.estimatedRoi}
+                      </span>
                     </div>
                   )}
                   {msg.bento.demandBadge && (
-                    <div className="bg-slate-50 p-2 rounded-xl border border-slate-100">
-                      <span className="text-[9px] text-slate-400 uppercase block">Market Demand</span>
-                      <span className="font-bold text-xs text-slate-900 truncate">{msg.bento.demandBadge}</span>
+                    <div className="bg-zinc-50 dark:bg-zinc-800/60 p-2 rounded-xl border border-zinc-100 dark:border-zinc-700">
+                      <span className="text-[9px] text-zinc-400 uppercase flex items-center gap-1">
+                        <Sparkles className="w-3 h-3 text-cyan-500" />
+                        <span>Demand</span>
+                      </span>
+                      <span className="font-extrabold text-xs text-cyan-600 dark:text-cyan-400 truncate block">
+                        {msg.bento.demandBadge}
+                      </span>
                     </div>
                   )}
                 </div>
@@ -142,22 +155,29 @@ export const AdvisorView: React.FC<AdvisorViewProps> = ({
                   <button
                     key={idx}
                     onClick={() => handleSuggestionClick(sug)}
-                    className="px-3 py-1.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-full text-[11px] font-semibold transition-colors cursor-pointer shadow-xs"
+                    className="px-3 py-1.5 bg-white dark:bg-zinc-900 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-800 rounded-full text-[11px] font-semibold transition-colors cursor-pointer shadow-2xs flex items-center gap-1"
                   >
-                    {sug}
+                    <Lightbulb className="w-3 h-3 text-amber-500" />
+                    <span>{sug}</span>
                   </button>
                 ))}
               </div>
             )}
-          </div>
+          </motion.div>
         ))}
 
         {isLoading && (
-          <div className="flex items-center gap-2 p-3 bg-white rounded-2xl border border-slate-100 w-fit text-xs text-slate-500 shadow-xs">
-            <span className="material-symbols-outlined text-base text-slate-900 animate-spin">
+          <div className="flex items-center gap-2 p-3 bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-100 dark:border-zinc-800 w-fit text-xs text-zinc-500 dark:text-zinc-400 shadow-xs">
+            <span className="material-symbols-outlined text-base text-zinc-900 dark:text-white animate-spin">
               progress_activity
             </span>
-            <span>Thinking...</span>
+            <span>
+              {currentLang === "Tamil"
+                ? "AI ஆலோசனை தயாராகிறது..."
+                : currentLang === "Hindi"
+                ? "एआई परामर्श तैयार हो रहा है..."
+                : "Synthesizing livestock insights..."}
+            </span>
           </div>
         )}
 
@@ -167,15 +187,15 @@ export const AdvisorView: React.FC<AdvisorViewProps> = ({
       {/* Input Bar */}
       <form
         onSubmit={handleSubmit}
-        className="sticky bottom-20 z-20 bg-white border border-slate-200 rounded-3xl p-2 shadow-lg flex items-center gap-2"
+        className="sticky bottom-20 z-20 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-2 shadow-lg flex items-center gap-2"
       >
         <button
           type="button"
           onClick={() => fileInputRef.current?.click()}
-          className="w-10 h-10 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center cursor-pointer transition-colors shrink-0"
-          title="Upload Photo"
+          className="w-10 h-10 rounded-2xl bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-600 dark:text-zinc-300 flex items-center justify-center cursor-pointer transition-colors shrink-0"
+          title="Upload Photo for Diagnostic Advice"
         >
-          <span className="material-symbols-outlined text-lg">add_photo_alternate</span>
+          <ImageIcon className="w-5 h-5" />
         </button>
         <input
           ref={fileInputRef}
@@ -190,7 +210,7 @@ export const AdvisorView: React.FC<AdvisorViewProps> = ({
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder={t("askPlaceholder", currentLang)}
-          className="flex-1 bg-transparent text-slate-900 text-xs font-medium outline-none px-2"
+          className="flex-1 bg-transparent text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-500 text-xs font-medium outline-none px-2"
         />
 
         <button
@@ -198,11 +218,11 @@ export const AdvisorView: React.FC<AdvisorViewProps> = ({
           disabled={(!input.trim() && !selectedImage) || isLoading}
           className={`w-10 h-10 rounded-2xl flex items-center justify-center transition-all shrink-0 cursor-pointer ${
             input.trim() || selectedImage
-              ? "bg-slate-900 text-white shadow-xs"
-              : "bg-slate-100 text-slate-400"
+              ? "bg-zinc-900 dark:bg-emerald-600 text-white shadow-xs"
+              : "bg-zinc-100 dark:bg-zinc-800 text-zinc-400 dark:text-zinc-500"
           }`}
         >
-          <span className="material-symbols-outlined text-lg font-bold">arrow_upward</span>
+          <ArrowUp className="w-5 h-5" />
         </button>
       </form>
     </main>

@@ -1,31 +1,54 @@
 @import "tailwindcss";
 
+/* Enable class-based dark mode in Tailwind CSS v4 */
+@custom-variant dark (&:where(.dark, .dark *));
+
 @layer base {
   :root {
     --bg-main: #f8fafc;
     --card-bg: #ffffff;
-    --text-primary: #0f172a;
-    --text-secondary: #475569;
+    --text-primary: #09090b;
+    --text-secondary: #52525b;
     --text-muted: #94a3b8;
     --border-color: #e2e8f0;
     --border-subtle: #f1f5f9;
-    --primary-action: #0f172a;
-    --primary-action-hover: #1e293b;
-    --accent-emerald: #059669;
-    --accent-amber: #d97706;
-    --accent-blue: #2563eb;
+    --primary-emerald: #059669;
+    --primary-emerald-hover: #047857;
+    --accent-amber: #f59e0b;
+    --accent-purple: #8b5cf6;
+    --accent-cyan: #06b6d4;
+  }
+
+  html.dark,
+  :root.dark {
+    --bg-main: #000000;
+    --card-bg: #09090b;
+    --text-primary: #fafafa;
+    --text-secondary: #a1a1aa;
+    --text-muted: #71717a;
+    --border-color: #27272a;
+    --border-subtle: #18181b;
+    --primary-emerald: #10b981;
+    --primary-emerald-hover: #059669;
   }
 
   html,
   body {
     min-height: 100%;
     width: 100%;
-    background-color: #f8fafc;
-    color: #0f172a;
+    background-color: var(--bg-main);
+    color: var(--text-primary);
     overflow-x: hidden;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    transition: background-color 0.25s ease, color 0.25s ease;
+  }
+
+  html.dark,
+  html.dark body {
+    background-color: #000000;
+    color: #fafafa;
   }
 
   /* Accessible touch targets */
@@ -70,67 +93,84 @@
   padding-top: max(env(safe-area-inset-top, 16px), 16px);
 }
 
-/* Modern clean card */
-.app-card {
-  background-color: #ffffff;
-  border: 1px solid #f1f5f9;
-  border-radius: 24px;
-  box-shadow: 0 2px 14px rgba(15, 23, 42, 0.03);
-  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+/* Glassmorphism helpers */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
 }
 
-.app-card:active {
-  transform: scale(0.985);
+.dark .glass-panel {
+  background: rgba(9, 9, 11, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
 }
 
-/* Floating Dock */
-.white-dock {
-  background: rgba(255, 255, 255, 0.94);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(226, 232, 240, 0.9);
-  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
-}
-
-/* Scanner animations */
-@keyframes scanLine {
+/* Animations */
+@keyframes laserScan {
   0% {
     top: 5%;
-    opacity: 0.8;
+    opacity: 0.7;
   }
   50% {
+    top: 50%;
     opacity: 1;
   }
   100% {
     top: 95%;
-    opacity: 0.8;
+    opacity: 0.7;
   }
 }
 
-.animate-scan {
-  animation: scanLine 2.2s ease-in-out infinite alternate;
+.animate-laser {
+  animation: laserScan 2.4s cubic-bezier(0.4, 0, 0.2, 1) infinite alternate;
 }
 
-/* Shimmer Loading Animation */
-@keyframes shimmer {
-  0% {
-    background-position: -200% 0;
+@keyframes spinSlow {
+  from {
+    transform: rotate(0deg);
   }
-  100% {
-    background-position: 200% 0;
+  to {
+    transform: rotate(360deg);
   }
 }
 
-.animate-shimmer {
-  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
+.animate-spin-slow {
+  animation: spinSlow 12s linear infinite;
+}
+
+@keyframes spinReverse {
+  from {
+    transform: rotate(360deg);
+  }
+  to {
+    transform: rotate(0deg);
+  }
+}
+
+.animate-spin-reverse {
+  animation: spinReverse 16s linear infinite;
+}
+
+@keyframes pulseGlow {
+  0%, 100% {
+    opacity: 0.4;
+    transform: scale(0.98);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.02);
+  }
+}
+
+.animate-pulse-glow {
+  animation: pulseGlow 2.5s ease-in-out infinite;
 }
 
 @keyframes slideUp {
   from {
     opacity: 0;
-    transform: translateY(12px);
+    transform: translateY(14px);
   }
   to {
     opacity: 1;
@@ -153,4 +193,25 @@
 
 .animate-fade-in {
   animation: fadeIn 0.25s ease-out forwards;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.animate-shimmer {
+  background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.4) 50%, rgba(255,255,255,0) 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.8s infinite;
+}
+
+.dark .animate-shimmer {
+  background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0) 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.8s infinite;
 }

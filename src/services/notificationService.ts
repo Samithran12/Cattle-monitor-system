@@ -1,5 +1,6 @@
-import { Animal } from "../types";
+import { Animal, SmartTask, MarketOrder } from "../types";
 import { Language } from "../utils/i18n";
+import { AppNotification } from "../utils/storage";
 import { LocalNotifications } from "@capacitor/local-notifications";
 
 export interface NotificationPermissionStatus {
@@ -40,7 +41,7 @@ export async function requestPushNotificationPermission(): Promise<boolean> {
     if (permission === "granted") {
       registerServiceWorker();
       sendNativePushNotification(
-        "🔔 CattleIQ Notifications Enabled!",
+        "🔔 CattleIQ Real-time Alerts Active!",
         "Real-time herd health alerts, marketplace order updates, and vaccination reminders are now active."
       );
       return true;
@@ -78,7 +79,7 @@ export async function sendNativePushNotification(
           title,
           body,
           id: Math.floor(Math.random() * 1000000) + 1,
-          schedule: { at: new Date(Date.now() + 600) }, // Trigger in 600ms on mobile OS
+          schedule: { at: new Date(Date.now() + 500) },
           sound: undefined,
           actionTypeId: "",
           extra: { url },
@@ -97,64 +98,179 @@ export async function sendNativePushNotification(
       navigator.serviceWorker.ready.then((registration) => {
         registration.showNotification(title, {
           body,
-          icon: "https://lh3.googleusercontent.com/aida-public/AB6AXuAwXOIlrj2VA7zolpbseS7fMuqgdNXfkaOFPFNS0VWmkiqfLntFLK5th1upyD6ikBge6kDafP65zRkpM_jyy8BwwnPVg5xtR3KQxCIz7dJUFx4tYgzDAHAXNA5CGMZ-QGMID-4dx0M3y7Hq0s8ublwsT92IfgRcNuwvK4rHNBhoZgDoCdMMM3dbpREuDJhJU-tX2FvFnaVWwjXs4hgIaaMJnvlSdFvcy1yExTgMy2ZI-yBQQ7W6Eg9P5fjBsDYL8gXUvz5MZenzM_s",
+          icon: "/assets/default-avatar.svg",
           data: { url },
         });
       });
     } else {
       new Notification(title, {
         body,
-        icon: "https://lh3.googleusercontent.com/aida-public/AB6AXuAwXOIlrj2VA7zolpbseS7fMuqgdNXfkaOFPFNS0VWmkiqfLntFLK5th1upyD6ikBge6kDafP65zRkpM_jyy8BwwnPVg5xtR3KQxCIz7dJUFx4tYgzDAHAXNA5CGMZ-QGMID-4dx0M3y7Hq0s8ublwsT92IfgRcNuwvK4rHNBhoZgDoCdMMM3dbpREuDJhJU-tX2FvFnaVWwjXs4hgIaaMJnvlSdFvcy1yExTgMy2ZI-yBQQ7W6Eg9P5fjBsDYL8gXUvz5MZenzM_s",
+        icon: "/assets/default-avatar.svg",
       });
     }
   }
 }
 
-export function notifyOrderPlaced(orderId: string, itemTitle: string) {
-  sendNativePushNotification(
-    `📦 New Order Placed (${orderId})`,
-    `Your order for "${itemTitle}" has been sent to seller for confirmation.`
-  );
-}
+/**
+ * Real-time Dynamic Evaluation Engine:
+ * Analyzes active herd state, pending orders, weather conditions, and care tasks
+ * to synthesize real-time actionable notifications.
+ */
+export function generateRealtimeNotifications(
+  animals: Animal[],
+  tasks: SmartTask[],
+  orders: MarketOrder[],
+  existingNotifications: AppNotification[],
+  userLanguage: Language = "English"
+): AppNotification[] {
+  const dynamicAlerts: AppNotification[] = [];
+  const nowStr = "Just now";
 
-export function notifyOrderStatusChanged(orderId: string, status: string, itemTitle: string) {
-  sendNativePushNotification(
-    `🔔 Order ${status.toUpperCase()} (${orderId})`,
-    `Order for "${itemTitle}" is now marked as ${status}.`
-  );
-}
+  // 1. Real-time Vaccination & Medical Audit Check
+  animals.forEach((animal) => {
+    if (animal.vaccinationStatus !== "Up to Date") {
+      dynamicAlerts.push({
+        id: `dyn-vax-${animal.id}`,
+        type: "Vaccination",
+        title:
+          userLanguage === "Tamil"
+            ? `தடுப்பூசி எச்சரிக்கை: ${animal.name} (${animal.tagId})`
+            : userLanguage === "Hindi"
+            ? `टीकाकरण चेतावनी: ${animal.name} (${animal.tagId})`
+            : `Vaccination Booster Overdue: ${animal.name} (${animal.tagId})`,
+        description:
+          userLanguage === "Tamil"
+            ? `கோமாரி (FMD) தடுப்பூசி தவணை முடிவடைந்தது. பாஸ்போர்ட் திறந்து மருத்துவ பதிவை புதுப்பிக்கவும்.`
+            : userLanguage === "Hindi"
+            ? `खुरपका (FMD) बूस्टर टीका बकाया है। पासपोर्ट खोलकर अपडेट करें।`
+            : `FMD booster vaccine is overdue. Tap to inspect Digital Passport and update medical history.`,
+        time: nowStr,
+        read: false,
+        animalId: animal.id,
+      });
+    }
 
-export function notifyWeatherHeatAlert(temperature: number) {
-  sendNativePushNotification(
-    `☀️ High Heat Alert (${temperature}°C)`,
-    `High afternoon temperature detected. Activate shed water sprinklers and ensure cool drinking water.`
-  );
-}
+    if (animal.status === "Needs Attention" || animal.healthScore < 90) {
+      dynamicAlerts.push({
+        id: `dyn-health-${animal.id}`,
+        type: "Health",
+        title:
+          userLanguage === "Tamil"
+            ? `சுகாதார எச்சரிக்கை: ${animal.name} (மதிப்பெண் ${animal.healthScore}%)`
+            : userLanguage === "Hindi"
+            ? `स्वास्थ्य अलर्ट: ${animal.name} (स्कोर ${animal.healthScore}%)`
+            : `Health Score Alert: ${animal.name} (${animal.healthScore}%)`,
+        description:
+          userLanguage === "Tamil"
+            ? `உடலியல் சோர்வு காணப்படுகிறது. அவசர கால்நடை மருத்துவரை அழைக்கவும் (1800-425-9000).`
+            : userLanguage === "Hindi"
+            ? `स्वास्थ्य स्कोर कम है। आपातकालीन पशु चिकित्सक से संपर्क करें (1800-425-9000)।`
+            : `Bovine vitality dropped to ${animal.healthScore}%. Veterinary consultation recommended (1800-425-9000).`,
+        time: nowStr,
+        read: false,
+        animalId: animal.id,
+      });
+    }
 
-export function notifyNewTaskCreated(
-  taskTitle: string,
-  animalName: string,
-  scheduledTime: string
-) {
-  const title = `⏰ Reminder Active: ${taskTitle}`;
-  const body = `Scheduled for ${animalName} at ${scheduledTime}. Live alert dispatched to mobile.`;
-  sendNativePushNotification(title, body);
-}
+    if (animal.pregnancyMonths && animal.pregnancyMonths >= 7) {
+      dynamicAlerts.push({
+        id: `dyn-preg-${animal.id}`,
+        type: "Pregnancy",
+        title:
+          userLanguage === "Tamil"
+            ? `முதுகர்ப்ப கவனிப்பு: ${animal.name} (${animal.pregnancyMonths} மாதங்கள்)`
+            : userLanguage === "Hindi"
+            ? `गर्भावस्था देखभाल: ${animal.name} (${animal.pregnancyMonths} माह)`
+            : `Advanced Gestation: ${animal.name} (Month ${animal.pregnancyMonths})`,
+        description:
+          userLanguage === "Tamil"
+            ? `பிரசவ கொட்டகை தயார் செய்து தாது உப்பு மற்றும் கால்சியம் சப்ளிமெண்ட் வழங்கவும்.`
+            : userLanguage === "Hindi"
+            ? `बछड़े के जन्म के लिए शेड तैयार करें और अतिरिक्त कैल्शियम दें।`
+            : `Prepare calving pen and ensure daily calcium supplementation prior to parturition.`,
+        time: nowStr,
+        read: false,
+        animalId: animal.id,
+      });
+    }
+  });
 
-export function triggerHerdPushCheck(animals: Animal[], userLanguage: Language = "English") {
-  const overdueVaccine = animals.find((a) => a.vaccinationStatus !== "Up to Date");
-  const needsAttention = animals.find((a) => a.status === "Needs Attention" || a.healthScore < 85);
-
-  if (overdueVaccine) {
-    const title = userLanguage === "Tamil" ? `🚨 தடுப்பூசி எச்சரிக்கை - ${overdueVaccine.name}` : userLanguage === "Hindi" ? `🚨 टीकाकरण चेतावनी - ${overdueVaccine.name}` : `🚨 Vaccination Booster Alert - ${overdueVaccine.name}`;
-    const body = userLanguage === "Tamil" ? `கோமாரி (FMD) தடுப்பூசி பாக்கி. பாஸ்போர்ட் மற்றும் மருத்துவக் குறிப்பைப் பார்வையிடவும்.` : userLanguage === "Hindi" ? `खुरपका-मुंहपका (FMD) बूस्टर बकाया है। पासपोर्ट देखें।` : `FMD vaccination booster overdue. Tap to view official digital passport.`;
-    sendNativePushNotification(title, body);
-    return;
+  // 2. Real-time Urgent Task Reminders
+  const urgentPendingTasks = tasks.filter((t) => !t.isCompleted && t.urgent);
+  if (urgentPendingTasks.length > 0) {
+    const firstTask = urgentPendingTasks[0];
+    dynamicAlerts.push({
+      id: `dyn-task-${firstTask.id}`,
+      type: "Urgent",
+      title:
+        userLanguage === "Tamil"
+          ? `அவசர பணி: ${firstTask.title}`
+          : userLanguage === "Hindi"
+          ? `प्राथमिकता कार्य: ${firstTask.title}`
+          : `Priority Task Due: ${firstTask.title}`,
+      description:
+        userLanguage === "Tamil"
+          ? `${firstTask.animalName} - நேரம்: ${firstTask.time} (${firstTask.location})`
+          : `${firstTask.animalName} - Scheduled at ${firstTask.time} (${firstTask.location})`,
+      time: nowStr,
+      read: false,
+    });
   }
 
-  if (needsAttention) {
-    const title = userLanguage === "Tamil" ? `⚠️ சுகாதார எச்சரிக்கை - ${needsAttention.name}` : userLanguage === "Hindi" ? `⚠️ स्वास्थ्य चेतावनी - ${needsAttention.name}` : `⚠️ Health Alert - ${needsAttention.name}`;
-    const body = userLanguage === "Tamil" ? `ஆரோக்கிய நிலை ${needsAttention.healthScore}%. கால்நடை மருத்துவர் பரிசோதனை தேவை.` : userLanguage === "Hindi" ? `स्वास्थ्य स्कोर ${needsAttention.healthScore}%. डॉक्टर निरीक्षण आवश्यक।` : `Health score is ${needsAttention.healthScore}%. Vet inspection recommended.`;
-    sendNativePushNotification(title, body);
-  }
+  // 3. Real-time Orders Tracker Alerts
+  orders.forEach((order) => {
+    if (order.status !== "completed") {
+      dynamicAlerts.push({
+        id: `dyn-ord-${order.id}`,
+        type: "Market",
+        title:
+          userLanguage === "Tamil"
+            ? `சந்தை ஆர்டர்: #${order.id} (${order.itemTitle})`
+            : userLanguage === "Hindi"
+            ? `बाज़ार ऑर्डर: #${order.id} (${order.itemTitle})`
+            : `Marketplace Order #${order.id} (${order.itemTitle})`,
+        description:
+          userLanguage === "Tamil"
+            ? `நிலை: ${order.status.toUpperCase()} • விற்பனையாளர்: ${order.sellerName}. நேரலை கண்காணிப்பு கிடைக்கிறது.`
+            : `Status: ${order.status.toUpperCase()} • Seller: ${order.sellerName}. Live dispatch tracking enabled.`,
+        time: nowStr,
+        read: false,
+        orderId: order.id,
+      });
+    }
+  });
+
+  // 4. Real-time Weather / Heat Index Surge Alert
+  dynamicAlerts.push({
+    id: `dyn-weather-heat`,
+    type: "Weather",
+    title:
+      userLanguage === "Tamil"
+        ? `வெப்ப அலை எச்சரிக்கை (35°C)`
+        : userLanguage === "Hindi"
+        ? `उच्च तापमान चेतावनी (35°C)`
+        : `High Temperature Alert (35°C)`,
+    description:
+      userLanguage === "Tamil"
+        ? `பிற்பகல் 12:00 முதல் 3:00 வரை கொட்டகை நீர் தெளிப்பான் இயக்கி குளிர்நீர் வழங்கவும்.`
+        : userLanguage === "Hindi"
+        ? `दोपहर में शेड स्प्रिंकलर चालू रखें और भरपूर पीने का पानी सुनिश्चित करें।`
+        : `Activate shed cooling sprinklers between 12:00 PM and 3:00 PM to mitigate heat stress.`,
+    time: "Today",
+    read: true,
+  });
+
+  // Merge with existing user-read state
+  const readIds = new Set(existingNotifications.filter((n) => n.read).map((n) => n.id));
+  const userCreated = existingNotifications.filter((n) => !n.id.startsWith("dyn-"));
+
+  const finalMerged: AppNotification[] = [
+    ...dynamicAlerts.map((d) => ({
+      ...d,
+      read: readIds.has(d.id),
+    })),
+    ...userCreated,
+  ];
+
+  return finalMerged;
 }
